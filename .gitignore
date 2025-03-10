@@ -1,1 +1,4 @@
 code/data/
+!code/data/ECG5000/ECG5000_TEST.tsv
+!code/data/ECG5000/TRAIN.tsv
+!code/data/ECG5000/README.md
