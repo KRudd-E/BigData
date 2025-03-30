@@ -1,0 +1,19 @@
+# Core Data Libraries
+numpy
+pandas
+
+# Visualization Libraries
+matplotlib
+seaborn
+
+# Machine Learning
+scikit-learn
+# tensorflow #- if we re using Python 3.11, need a TensorFlow 2.12+ version
+
+# Time Series & Spark
+pyspark
+sktime
+aeon
+
+# Additional TSC Library
+# wildboar # - if we are using Python 3.11, need a wildboar version that supports it -  pip install wildboar

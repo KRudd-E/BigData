@@ -1,0 +1,18 @@
+name: bigdata_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - pyspark
+  - sktime
+  - aeon
+  - pip             # so pip installs in this env
+  - pip:
+    - tensorflow==2.12.0
+    - wildboar
