@@ -1,5 +1,7 @@
 from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
+from preprocessing import Preprocessor
+from utilities import show_compact
 
 def main():
     # Create a local Spark session
@@ -7,7 +9,7 @@ def main():
     if spark is None:
         # No active session, so create a new one
         spark = SparkSession.builder \
-            .appName("TestSparkInitialisation") \
+            .appName("TestPipeline") \
             .master("local[*]") \
             .getOrCreate()
         print("Spark session created!")
@@ -30,6 +32,17 @@ def main():
     # Print schema and a few rows to confirm it loaded correctly
     print("Data schema:")
     df.printSchema()
+    
+    
+    # Instantiate the preprocessor (config can be expanded later!!)
+    config_preproc = {}
+    preprocessor = Preprocessor(config_preproc)
+    preprocessed_df = preprocessor.run_preprocessing(df)
+    
+    print("Sample of raw data")
+    show_compact(df, num_rows=5, num_cols=3)
+    print("Sample of preprocessed data:")
+    show_compact(preprocessed_df, num_rows=5, num_cols=3)  
     
     # Stop the Spark session
     spark.stop()
