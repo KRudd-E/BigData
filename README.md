@@ -30,5 +30,5 @@ conda activate bigdata_env
 conda install --file requirements.txt
 
 
-####  5. Run your scripts :
-python code/src/file.py
+####  5. Run main.py scripts :
+python code/src/main.py
