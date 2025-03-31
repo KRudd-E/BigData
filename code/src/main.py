@@ -14,6 +14,9 @@ def main():
         except NameError:
             spark = SparkSession.builder.getOrCreate()
             print("Databricks: Created Spark session!")
+        config = {
+            "data_path": "/mnt/2025-team6/*.tsv"
+        }
     else:
         # If not in Databricks, we are running locally.
         # Try to get an active Spark session; if none, create one.
@@ -26,13 +29,13 @@ def main():
             print("Local: Created Spark session!")
         else:
             print("Local: Spark session already active!")
+        
+        # For local run, use your Windows file path.
 
-    # Set up the data configuration.
-    # For local run, use your Windows file path.
-    # For Databricks, change this to your DBFS path (example: "/FileStore/ECG5000/*.tsv").
-    config = {
+        # For Petru: Local-Path
+        config = {
         "data_path": "D:/repos/BigData-main/BigData-1/ECG5000/*.tsv"
-    }
+        }
 
     # Create an instance of DataIngestion and load the data.
     ingestion = DataIngestion(spark, config)
