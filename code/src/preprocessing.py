@@ -50,9 +50,15 @@ class Preprocessor:
         feature_cols = [col for col in df.columns if col != "label"]
         for col in feature_cols:
             # Get min and max for the column
-            stats = df.select(F.min(col).alias("min"), F.max(col).alias("max")).collect()[0]
+            stats = df.select(
+                F.min(col).alias("min"), 
+                F.max(col).alias("max")
+                ).collect()[0]
             min_val, max_val = stats["min"], stats["max"]
             if max_val is not None and max_val != min_val:
+                 # Ensure min_val and max_val are numeric
+                min_val = float(min_val)
+                max_val = float(max_val)
                 df = df.withColumn(col, (F.col(col) - min_val) / (max_val - min_val))
         return df
 
