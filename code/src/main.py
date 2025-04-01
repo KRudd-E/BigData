@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
 from local_model_manager_DT import LocalModelManager_DT
-from local_model_manager import LocalModelManager
+# from local_model_manager import LocalModelManager
 from utilities import show_compact
 import os
 
@@ -55,13 +55,17 @@ def main():
     
     # Here we train DecisionTree on the preprocessed data.
     print("Here we train Decision Tree on the preprocessed data.")
-    model_manager_DT = LocalModelManager_DT({"num_partitions": 2, "model_params": {"random_state": 42}})
+    config_model = {
+        "num_partitions": 2, 
+        "model_params": {"random_state": 42}
+    }
+    model_manager_DT = LocalModelManager_DT(config_model)
     ensemble_DT = model_manager_DT.train_ensemble(preprocessed_df)
     
-    # Here we train Proximity forests on the preprocessed data.
-    print("Here we train Proximity forests on the preprocessed data.")
-    model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
-    ensemble = model_manager.train_ensemble(preprocessed_df)
+    # # Here we train Proximity forests on the preprocessed data.
+    # print("Here we train Proximity forests on the preprocessed data.")
+    # model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
+    # ensemble = model_manager.train_ensemble(preprocessed_df)
 
     print("Sample of raw data:")
     show_compact(df, num_rows=5, num_cols=3)
@@ -74,4 +78,5 @@ def main():
         spark.stop()
 
 if __name__ == "__main__":
-    main()
+    main()#
+    # THis is a test
