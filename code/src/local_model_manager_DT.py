@@ -17,7 +17,7 @@ from sklearn.tree import DecisionTreeClassifier
 from typing import List
 import logging
 
-class LocalModelManager:
+class LocalModelManager_DT:
     """
     This class handles training local models on parts of our data and putting them in an ensemble.
     Steps:
