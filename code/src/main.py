@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
+from local_model_manager_DT import LocalModelManager
 from utilities import show_compact
 import os
 
@@ -48,6 +49,10 @@ def main():
     config_preproc = {}
     preprocessor = Preprocessor(config_preproc)
     preprocessed_df = preprocessor.run_preprocessing(df)
+    
+    # Train local models on the preprocessed data
+    model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
+    ensemble = model_manager.train_ensemble(preprocessed_df)
 
     print("Sample of raw data:")
     show_compact(df, num_rows=5, num_cols=3)
