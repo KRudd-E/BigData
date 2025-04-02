@@ -36,7 +36,7 @@ def main():
 
         # For Petru: Local-Path
         config = {
-        "data_path": "D:/repos/BigData-main/BigData-1/ECG5000/*.tsv"
+        "data_path": "train+test_ECG5000.tsv"
         }
 
     # Create an instance of DataIngestion and load the data.
