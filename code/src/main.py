@@ -32,9 +32,6 @@ def main():
         else:
             print("Local: Spark session already active!")
         
-        # For local run, use your Windows file path.
-
-        # For Petru: Local-Path
         config = {
         "data_path": "train+test_ECG5000.tsv"
         }
