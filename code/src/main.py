@@ -3,6 +3,8 @@ from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
 from utilities import show_compact
 
+print("Running main.py")
+
 def main():
     # Create a local Spark session
     spark = SparkSession.getActiveSession()
@@ -16,13 +18,11 @@ def main():
     else:
         print("Spark session is already active!")
 
-    #spark.sparkContext.setLogLevel("DEBUG")
-       
-    # Define the configuration with the correct path to the dataset.
+    # Define the configuration with the local path to the dataset.
     config = {
-        "data_path": "D:/repos/BigData-main/BigData-1/ECG5000/*.tsv"       
+        "data_path": 'train+test_ECG5000.tsv'
     }
-    
+
     # Create an instance of DataIngestion
     ingestion = DataIngestion(spark, config)
     
@@ -32,7 +32,6 @@ def main():
     # Print schema and a few rows to confirm it loaded correctly
     print("Data schema:")
     df.printSchema()
-    
     
     # Instantiate the preprocessor (config can be expanded later!!)
     config_preproc = {}

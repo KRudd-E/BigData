@@ -7,8 +7,8 @@ This module shall handle loading raw data and returns a Spark DataFrame for subs
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql import DataFrame   
-
+from pyspark.sql import DataFrame
+from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType
 
 
 class DataIngestion:
@@ -38,14 +38,19 @@ class DataIngestion:
         # TODO: Add logic to handle default path 
         # Add logic to handle different file formats if needed.
         
-        
         print(f"Data Path is {data_path} ++++++++++++++++++++++++++++++++++++++++++++++++")
-        df = self.spark.read.option("header", "false")\
-                    .option("delimiter", "\t")\
-                    .option("inferSchema", "true")\
-                    .csv(data_path)
-                    
-                   
+        columns = [f"_c{i}" for i in range(1, 141)]
+        
+        # Create the schema correctly
+        schema = StructType([
+            StructField("label", IntegerType(), True)
+        ] + [
+            StructField(col, DoubleType(), True) for col in columns
+        ])
+
+        df = self.spark.read.csv(
+            data_path, header=True, schema=schema, sep="\t"
+        )
         self.validate_data(df)  # Check if data is valid.
         return df
     
