@@ -31,11 +31,20 @@ def main():
             print("Local: Created Spark session!")
         else:
             print("Local: Spark session already active!")
-        
-        config = {
-        "data_path": "fulldataset_ECG5000.csv"
-        }
 
+        # For local run, use your Windows file path.
+    
+        # Make sure project root folder is the parent of "code" folder, <BigData>
+        print("Current working directory (project root):", os.getcwd())
+        # Get the directory where the current file (main.py) is located
+        current_dir = os.path.dirname(__file__)
+        # Go up two levels to reach the project root
+        project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
+
+        config = {
+            "data_path": project_root + "/ECG5000/*.tsv"
+        }    
+    
     # Create an instance of DataIngestion and load the data.
     ingestion = DataIngestion(spark, config)
     df = ingestion.load_data()
@@ -75,5 +84,5 @@ def main():
         spark.stop()
 
 if __name__ == "__main__":
+    print("Current working directory (project root):", os.getcwd())
     main()#
-    # THis is a test
