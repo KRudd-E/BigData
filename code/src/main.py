@@ -33,7 +33,7 @@ def main():
             print("Local: Spark session already active!")
         
         config = {
-        "data_path": "train+test_ECG5000.tsv"
+        "data_path": "fulldataset_ECG5000.csv"
         }
 
     # Create an instance of DataIngestion and load the data.

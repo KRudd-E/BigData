@@ -50,7 +50,7 @@ class DataIngestion:
         ])
 
         df = self.spark.read.csv(
-            data_path, header=True, schema=schema, sep="\t"
+            data_path, header=True, schema=schema, sep=","
         )
         self.validate_data(df)  # Check if data is valid.
         return df
