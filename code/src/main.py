@@ -31,6 +31,7 @@ def main():
             print("Local: Created Spark session!")
         else:
             print("Local: Spark session already active!")
+
         # For local run, use your Windows file path.
     
         # Make sure project root folder is the parent of "code" folder, <BigData>
@@ -62,7 +63,7 @@ def main():
     print("Here we train Decision Tree on the preprocessed data.")
     config_model = {
         "num_partitions": 2, 
-        "model_params": {"random_state": 42}
+        "model_params": {"random_state": 1234}
     }
     model_manager_DT = LocalModelManager_DT(config_model)
     ensemble_DT = model_manager_DT.train_ensemble(preprocessed_df)

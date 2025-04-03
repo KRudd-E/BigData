@@ -32,14 +32,15 @@ class Preprocessor:
         """
         return df.dropna(how="all")
 
-    def split_label_features(self, df: DataFrame) -> DataFrame:
-        """
-        Splits the label from the features.
-        I assume the first column (_c0) is the label, so we rename it to "label".
-        The rest of the columns are features.
-        """
-        df = df.withColumnRenamed("_c0", "label")
-        return df
+    #### BEN: the data on github already has the label in the first column so this is not needed
+    # def split_label_features(self, df: DataFrame) -> DataFrame:
+    #     """
+    #     Splits the label from the features.
+    #     I assume the first column (_c0) is the label, so we rename it to "label".
+    #     The rest of the columns are features.
+    #     """
+    #     df = df.withColumnRenamed("_c0", "label")
+    #     return df
 
     def normalize_features(self, df: DataFrame) -> DataFrame:
         """
@@ -50,15 +51,9 @@ class Preprocessor:
         feature_cols = [col for col in df.columns if col != "label"]
         for col in feature_cols:
             # Get min and max for the column
-            stats = df.select(
-                F.min(col).alias("min"), 
-                F.max(col).alias("max")
-                ).collect()[0]
+            stats = df.select(F.min(col).alias("min"), F.max(col).alias("max")).collect()[0]
             min_val, max_val = stats["min"], stats["max"]
             if max_val is not None and max_val != min_val:
-                 # Ensure min_val and max_val are numeric
-                min_val = float(min_val)
-                max_val = float(max_val)
                 df = df.withColumn(col, (F.col(col) - min_val) / (max_val - min_val))
         return df
 
@@ -70,7 +65,7 @@ class Preprocessor:
          3. Normalize the feature columns.
         """
         df = self.handle_missing_values(df)
-        df = self.split_label_features(df)
+        # df = self.split_label_features(df)
         df = self.normalize_features(df)
         # You can add more feature engineering here if needed.
         return df
