@@ -54,7 +54,7 @@ def main():
     print("Here we train Decision Tree on the preprocessed data.")
     config_model = {
         "num_partitions": 2, 
-        "model_params": {"random_state": 42}
+        "model_params": {"random_state": 1234}
     }
     model_manager_DT = LocalModelManager_DT(config_model)
     ensemble_DT = model_manager_DT.train_ensemble(preprocessed_df)

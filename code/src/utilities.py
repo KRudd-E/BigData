@@ -6,7 +6,7 @@ def show_compact(df, num_rows=5, num_cols=3):
         then a placeholder, then the last `num_cols` columns.
     """
     # Collect the first few rows
-    rows = df.limit(num_rows).collect()
+    rows = df.take(num_rows)
     all_cols = df.columns
 
     if len(all_cols) > 2 * num_cols:
