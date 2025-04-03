@@ -2,9 +2,10 @@ from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
 from local_model_manager_DT import LocalModelManager_DT
-from local_model_manager import LocalModelManager
 from utilities import show_compact
 import os
+if  "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+    from local_model_manager import LocalModelManager
 
 def main():
     #======================== SET UP SPARK SESSION ========================
@@ -18,7 +19,7 @@ def main():
         except NameError:
             spark = SparkSession.builder.getOrCreate()
             print("\nDatabricks: Created Spark session!")
-        config = {
+        config_DataIngestion = {
             "data_path": "/mnt/2025-team6/fulldataset_ECG5000.csv",
             "data_percentage": 0.005  # % Percentage of data to load for SW development
         }
@@ -44,7 +45,7 @@ def main():
         # Go up two levels to reach the project root
         project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
 
-        config = {
+        config_DataIngestion = {
             # "data_path": project_root + "/ECG5000/*.tsv" # IF WE DECIDE TO USE .tsv FILES
             "data_path": project_root + "/fulldataset_ECG5000.csv", # IF WE DECIDE TO USE .csv FILES
             "data_percentage": 0.005  # % Percentage of data to load for SW development
@@ -52,7 +53,7 @@ def main():
         
     #===================================== LOAD DATA =====================================
     # Create an instance of DataIngestion and load the data.
-    ingestion = DataIngestion(spark, config)
+    ingestion = DataIngestion(spark, config_DataIngestion)
     df = ingestion.load_data()
 
     #df.printSchema()
