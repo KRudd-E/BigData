@@ -32,16 +32,6 @@ class Preprocessor:
         """
         return df.dropna(how="all")
 
-    #### BEN: the data on github already has the label in the first column so this is not needed
-    # def split_label_features(self, df: DataFrame) -> DataFrame:
-    #     """
-    #     Splits the label from the features.
-    #     I assume the first column (_c0) is the label, so we rename it to "label".
-    #     The rest of the columns are features.
-    #     """
-    #     df = df.withColumnRenamed("_c0", "label")
-    #     return df
-
     def normalize_features(self, df: DataFrame) -> DataFrame:
         """
         Applies a simple min-max scaling to all feature columns.
@@ -65,7 +55,6 @@ class Preprocessor:
          3. Normalize the feature columns.
         """
         df = self.handle_missing_values(df)
-        # df = self.split_label_features(df)
         df = self.normalize_features(df)
         # You can add more feature engineering here if needed.
         return df

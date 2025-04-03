@@ -30,16 +30,17 @@ class DataIngestion:
                            file formats, and any other parameters.
         """
         self.spark = spark
+        config.setdefault("data_percentage", 1.0)
         self.config = config
 
 
     def load_data(self):
         """Load data using file path from config."""
         data_path = self.config.get("data_path", "data/default.csv")  # Default path if not provided in config
-        # TODO: Add logic to handle default path 
-        # Add logic to handle different file formats if needed.
         
-        print(f"Data Path is {data_path} ++++++++++++++++++++++++++++++++++++++++++++++++")
+        data_percentage = self.config.get("data_percentage", 1.0)
+        
+        print(f"Data Path is {data_path} and loading {data_percentage}% of data ++++++++++++++++++++++")
         columns = [f"_c{i}" for i in range(1, 141)]
         
         # Create the schema correctly
@@ -50,8 +51,14 @@ class DataIngestion:
         ])
 
         df = self.spark.read.csv(
-            data_path, header=True, schema=schema, sep=","
+            data_path, 
+            header=True, 
+            schema=schema, 
+            sep=","
         )
+        
+        df = df.sample(fraction=data_percentage)     
+        print(f"\nData size is :{df.count()}\n")
         self.validate_data(df)  # Check if data is valid.
         return df
     
