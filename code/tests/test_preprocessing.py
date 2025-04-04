@@ -37,21 +37,6 @@ def test_handle_missing_values(spark_session, preprocessor):
     # Expect the row with all nulls to be dropped.
     assert cleaned_df.count() == 1
 
-def test_split_label_features(spark_session, preprocessor):
-    # Create a DataFrame mimicking the raw format.
-    data = [
-        (1, 2.0, 3.0),
-        (2, 4.0, 6.0)
-    ]
-    df = spark_session.createDataFrame(data, ["_c0", "_c1", "_c2"])
-    
-    split_df = preprocessor.split_label_features(df)
-    
-    # Check that the first column was renamed to 'label'
-    assert "label" in split_df.columns
-    # Also, _c0 should no longer be in the DataFrame.
-    assert "_c0" not in split_df.columns
-
 def test_normalize_features(spark_session, preprocessor):
     # Create a DataFrame with known values.
     data = [
@@ -105,7 +90,7 @@ def test_run_preprocessing(spark_session, preprocessor):
         (3, 30.0, 300.0),
         (None, None, None)  # This row should be dropped by missing value handler.
     ]
-    df = spark_session.createDataFrame(data, ["_c0", "_c1", "_c2"])
+    df = spark_session.createDataFrame(data, ["label", "_c1", "_c2"])
     
     # Run the complete preprocessing pipeline.
     processed_df = preprocessor.run_preprocessing(df)

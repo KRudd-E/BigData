@@ -39,13 +39,34 @@ class Preprocessor:
         This is a basic normalization. We can replace it with a more robust method if needed.
         """
         feature_cols = [col for col in df.columns if col != "label"]
+
+        # Compute min/max for all feature columns in one distributed aggregation
+        agg_exprs = []
         for col in feature_cols:
-            # Get min and max for the column
-            stats = df.select(F.min(col).alias("min"), F.max(col).alias("max")).collect()[0]
-            min_val, max_val = stats["min"], stats["max"]
-            if max_val is not None and max_val != min_val:
-                df = df.withColumn(col, (F.col(col) - min_val) / (max_val - min_val))
-        return df
+            agg_exprs.append(F.min(col).alias(f"min_{col}"))
+            agg_exprs.append(F.max(col).alias(f"max_{col}"))
+        
+        # Single aggregation + collect to driver
+        stats_row = df.agg(*agg_exprs).first()
+        
+        # Extract min/max values into dictionaries
+        min_vals = {col: stats_row[f"min_{col}"] for col in feature_cols}
+        max_vals = {col: stats_row[f"max_{col}"] for col in feature_cols}
+        
+        # Define normalized columns in one distributed operation
+        normalized_cols = []
+        for col in feature_cols:
+            min_val = min_vals[col]
+            max_val = max_vals[col]
+            if max_val != min_val:
+                expr = (F.col(col) - min_val) / (max_val - min_val)
+            else:
+                expr = F.col(col)  # Avoid division by zero
+            normalized_cols.append(expr.alias(col))
+        
+        # Apply all transformations in a single select (parallelized by Spark)
+        return df.select(*normalized_cols, "label")
+    
 
     def run_preprocessing(self, df: DataFrame) -> DataFrame:
         """
