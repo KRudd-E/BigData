@@ -1,10 +1,14 @@
+import os
 from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
 from local_model_manager_DT import LocalModelManager_DT
-from utilities import show_compact
+from prediction_manager import PredictionManager
 from local_model_manager import LocalModelManager
-import os
+from utilities import show_compact
+import time
+
+
 
 def main():
     #======================== SET UP SPARK SESSION ========================
@@ -49,47 +53,46 @@ def main():
             "data_path": project_root + "/fulldataset_ECG5000.csv", # IF WE DECIDE TO USE .csv FILES
             "data_percentage": 0.005  # % Percentage of data to load for SW development
             }   
-        
+    
+    start = time.time()
     #===================================== LOAD DATA =====================================
     # Create an instance of DataIngestion and load the data.
     ingestion = DataIngestion(spark, config_DataIngestion)
     df = ingestion.load_data()
 
     #df.printSchema()
-    print("\nSample of raw data:")
-    show_compact(df, num_rows=5, num_cols=3)
+    # print("\nSample of raw data:")
+    # show_compact(df, num_rows=5, num_cols=3)
 
     #=================================== PREPROCESS DATA ==================================
     # Create an instance of Preprocessor and run all cleaning steps.
     config_preproc = {}
     preprocessor = Preprocessor(config_preproc)
     preprocessed_df = preprocessor.run_preprocessing(df)
-
+    data_load_time = time.time()
+    print(f"\nData load + preprocessing time: {data_load_time-start:.4f} seconds\n")
+    
     print("Sample of preprocessed data:")
     show_compact(preprocessed_df, num_rows=5, num_cols=3)
     
     #==================================== TRAIN DIFFERENT MODELS ===========================
     # Train local models on the preprocessed data
     
-    #********************************* MODEL1 DT- just a test ******************************
-    
-    # Here we train DecisionTree on the preprocessed data.
-    print("\nHere we train Decision Tree on the preprocessed data.")
-    config_model = {
-        "num_partitions": 2, 
-        "model_params": {"random_state": 1234}
-    }
-    model_manager_DT = LocalModelManager_DT(config_model)
-    ensemble_DT = model_manager_DT.train_ensemble(preprocessed_df)
 
-    #********************************** MODEL2 PF- using AEON ******************************
-   
+    #************************************** PF- using AEON ********************************
+    start = time.time()
     print("\nHere we train Proximity forests on the preprocessed data.")
     model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
     ensemble = model_manager.train_ensemble(preprocessed_df)
-
+    training_time = time.time()
+    print(f"Training time: {training_time-start:.4f} seconds")
 
     #============================ TEST DIFFERENT MODELS ======================================
+    start = time.time()
+    predictor = PredictionManager(spark, ensemble)
+    predictions_df = predictor.generate_predictions(preprocessed_df)
+    prediction_time = time.time()
+    print(f"Prediction time: {prediction_time-start:.4f} seconds")
     
     #============================= EVALUATE DIFFERENT MODELS =================================
     # If running locally, stop the Spark session.
