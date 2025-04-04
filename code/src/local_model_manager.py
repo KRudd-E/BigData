@@ -8,6 +8,15 @@ For each part, it trains a Proximity Forest model.
 Then, it gathers all the models into one ensemble that we can use later to make predictions.
 """
 
+import subprocess
+import sys
+
+try:
+    import aeon
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "aeon"])
+    import aeon
+    
 import numpy as np
 from pyspark.sql import DataFrame
 import pandas as pd

@@ -4,7 +4,7 @@ from preprocessing import Preprocessor
 from local_model_manager_DT import LocalModelManager_DT
 from utilities import show_compact
 import os
-if  "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+if  "DATABRICKS_RUNTIME_VERSION" in os.environ:
     from local_model_manager import LocalModelManager
 
 def main():
@@ -84,7 +84,7 @@ def main():
     ensemble_DT = model_manager_DT.train_ensemble(preprocessed_df)
 
     #********************************** MODEL2 PF- using AEON ******************************
-    if  "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+    if  "DATABRICKS_RUNTIME_VERSION" in os.environ:
         # # Here we train Proximity forests on the preprocessed data on local machine .
         #TODO: not working in DATABRICKS
         
