@@ -3,9 +3,8 @@ from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
 from local_model_manager_DT import LocalModelManager_DT
 from utilities import show_compact
+from local_model_manager import LocalModelManager
 import os
-if  "DATABRICKS_RUNTIME_VERSION" in os.environ:
-    from local_model_manager import LocalModelManager
 
 def main():
     #======================== SET UP SPARK SESSION ========================
@@ -84,13 +83,10 @@ def main():
     ensemble_DT = model_manager_DT.train_ensemble(preprocessed_df)
 
     #********************************** MODEL2 PF- using AEON ******************************
-    if  "DATABRICKS_RUNTIME_VERSION" in os.environ:
-        # # Here we train Proximity forests on the preprocessed data on local machine .
-        #TODO: not working in DATABRICKS
-        
-        print("\nHere we train Proximity forests on the preprocessed data.")
-        model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
-        ensemble = model_manager.train_ensemble(preprocessed_df)
+   
+    print("\nHere we train Proximity forests on the preprocessed data.")
+    model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
+    ensemble = model_manager.train_ensemble(preprocessed_df)
 
 
     #============================ TEST DIFFERENT MODELS ======================================
