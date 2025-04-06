@@ -48,7 +48,7 @@ class LocalModelManager:
         # Use default settings if none provided
         default_config = {
             "num_partitions": 2,
-            "model_params": {"random_state": 42}
+            "model_params": {"random_state": 1234}
         }
         self.config = default_config if config is None else config
         self.models: List[ProximityForest] = []
