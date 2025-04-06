@@ -6,3 +6,4 @@ code/data/
 # Python bytecode files
 __pycache__/
 *.py[cod]
+hs_err_pid*.log
