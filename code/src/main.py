@@ -80,8 +80,8 @@ def main():
     
 
     #************************************** PF- using AEON ********************************
-    start = time.time()
     print("\nHere we train Proximity forests on the preprocessed data.")
+    start = time.time()
     model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
     ensemble = model_manager.train_ensemble(preprocessed_df)
     training_time = time.time()
