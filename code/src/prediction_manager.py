@@ -1,64 +1,59 @@
 # prediction_manager.py
 """
-prediction_manager.py
-
-This file handles making predictions using our trained models.
-- It takes the ensemble of local models and distributes them to worker nodes.
-- It applies the models to test data to generate predictions.
-- Finally, it collects the predictions back at the driver for analysis.
+Handles predictions using a trained ProximityForest model.
+- Broadcasts the model to Spark workers
+- Makes predictions on test data
+- Returns predictions as a Spark DataFrame
 """
+
 from pyspark.sql import DataFrame, functions as F
-from pyspark.sql.types import IntegerType
-from pyspark import TaskContext
-from typing import List
-import numpy as np
-from aeon.classification.distance_based import ProximityForest
-import pandas as pd
+from pyspark.sql.types import DoubleType
 from pyspark.sql.functions import pandas_udf
+from aeon.classification.distance_based import ProximityForest
+import numpy as np
+import pandas as pd
 import logging
 
 class PredictionManager:
-    """
-    we use this to set up the prediction manager with our models and settings.
-    Takes the bunch of models we have and sends these models to executors for parallel inference.
-    For each piece of data, it gets a prediction from each model.
-    Use majority voting to aggregate predictions.
-    """
-
-    def __init__(self, spark, models: List[ProximityForest]):
-    
+    def __init__(self, spark, ensemble: ProximityForest):
         """
-        When we set up the PredictionManager, we need to give it the Spark session
-        and the list of models we want to use.
+        Initialize with a trained ProximityForest model.
+        Args:
+            spark: Spark session
+            ensemble: Trained model from LocalModelManager.train_ensemble()
         
-        **** We also set up a logger to see if anything goes wrong.
         """
         self.spark = spark
-        self.models = models
-        self.logger = logging.getLogger(__name__)
+        self.ensemble = ensemble
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.addHandler(logging.StreamHandler())
         self.logger.setLevel(logging.INFO)
-
-    def _predict_udf(self):
-        """ We need a way to send our models to all the workers in our Spark cluster. 
-        We do this by 'broadcasting' them, then this function creates a UDF 
-        that each worker can use to make predictions with these models.
-        """
-        broadcast_models = self.spark.sparkContext.broadcast(self.models)
         
-        @pandas_udf(IntegerType())
-        def _predict(features: pd.Series) -> pd.Series:
-            try:
-                    X = np.array(x).reshape(1, -1)
-                    preds = [model.predict(X)[0] for model in broadcast_models.value]
-                    return np.argmax(np.bincount(preds))
-            except Exception as e:
-                    print(f"Error in partition {TaskContext.get().partitionId()}: {str(e)}")
-                    return -1  # Error code
+        # Basic model validation
+        if not ensemble or not hasattr(ensemble, 'is_fitted_') or not ensemble.is_fitted_:
+            raise ValueError("Model is not trained. First call LocalModelManager.train_ensemble()")
+
+
+    def _create_predict_udf(self):
+        """Create Spark UDF for making predictions."""
+        # Broadcast model to all workers
+        broadcast_model = self.spark.sparkContext.broadcast(self.ensemble)
+        
+        @pandas_udf(DoubleType())
+        def predict_udf(features: pd.Series) -> pd.Series:
+            """Converts features to AEON format and makes predictions."""
+            def predict_single(feature_array):
+                try:
+                    # Reshape to AEON's expected format: (samples, channels, features)
+                    X = np.ascontiguousarray(feature_array).reshape(1, 1, -1)
+                    return float(broadcast_model.value.predict(X)[0])
+                except Exception as e:
+                    print(f"Prediction error: {e}")
+                    return float(-999)
+  
             return features.apply(predict_single)
-        
-        return _predict
-
+            
+        return predict_udf
 
     def generate_predictions(self, test_df: DataFrame) -> DataFrame:
         
@@ -67,7 +62,7 @@ class PredictionManager:
 
         """
         # First, gotta make sure we actually have some models to use!
-        if not self.models:
+        if not self.ensemble:
             raise ValueError("No models available for prediction")
 
         feature_cols = [col for col in test_df.columns if col != "label"]
@@ -77,10 +72,10 @@ class PredictionManager:
             F.array(*[F.col(c).cast("double") for c in feature_cols])
         )
         
-        predict_udf = self._predict_udf()
+        predict_udf = self._create_predict_udf()
+      
         predictions_df = test_df.withColumn(
             "prediction", 
-            predict_udf("features")
+            predict_udf("features")  
         ).drop("features")
-        
         return predictions_df
