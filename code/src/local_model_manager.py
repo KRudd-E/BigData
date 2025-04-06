@@ -51,7 +51,7 @@ class LocalModelManager:
             "model_params": {"random_state": 1234}
         }
         self.config = default_config if config is None else config
-        self.models: List[ProximityForest] = []
+        self.models: List[ProximityForest] = [] # initialise empty list that will store the proximity forest models from each partition 
         
         # Set up a logger so we can see whats going on
         self.logger = logging.getLogger(__name__)
@@ -73,13 +73,13 @@ class LocalModelManager:
             df = self._repartition_data(df)
             
             # Get the number of parts we have now
-            num_parts = df.rdd.getNumPartitions()
-            self.logger.info(f"Training ensemble with {num_parts} parts......")
+            num_partitions = df.rdd.getNumPartitions()
+            self.logger.info(f"Training ensemble with {num_partitions} partitions...")
             
             # For each part, train a model
-            for part_id in range(num_parts):
-                self.logger.debug(f"Working on part {part_id}")
-                pandas_df = self._get_partition_data(df, part_id)
+            for partition in range(num_partitions):
+                self.logger.debug(f"Working on partition {partition}")
+                pandas_df = self._get_partition_data(df, partition)
                 if pandas_df is not None:
                     model = self._train_partition_model(pandas_df)
                     self.models.append(model)
@@ -96,15 +96,15 @@ class LocalModelManager:
         If 'num_partitions' is set in the config, repartition the data accordingly.
         """
         if "num_partitions" in self.config:
-            new_parts = self.config["num_partitions"]
-            self.logger.info(f"Repartitioning data to {new_parts} parts")
-            return df.repartition(new_parts)
+            num_partitions = self.config["num_partitions"]
+            self.logger.info(f"Repartitioning data to {num_partitions} parts")
+            return df.repartition(num_partitions)
         return df
         
     def _get_partition_data(self, df: DataFrame, partition_id: int) -> pd.DataFrame:
         """
-        Get the rows from a specific part and convert them to a pandas DataFrame
-        using a targeted mapPartitions.
+        Extracts all data from a specific partition and converts it to a pandas DataFrame
+        using a targeted mapPartitions operation.
         """
         try:
             def get_target_partition(index, iterator): # iterator: Any 
