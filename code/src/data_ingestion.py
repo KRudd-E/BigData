@@ -66,7 +66,7 @@ class DataIngestion:
     def validate_data(self, df):
         """Make sure the data is not empty."""
         # Use limit(1) to fetch a single row and check if the list is empty
-        if len(df.limit(1).collect()) == 0:
+        if len(df.take(1)) == 0:
             raise Exception("Data is empty!")
 
     def get_sample_data(self, df, fraction=0.1):
