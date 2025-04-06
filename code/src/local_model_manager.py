@@ -74,7 +74,7 @@ class LocalModelManager:
             
             # Get the number of parts we have now
             num_parts = df.rdd.getNumPartitions()
-            self.logger.info(f"Training ensemble with {num_parts} parts...")
+            self.logger.info(f"Training ensemble with {num_parts} parts......")
             
             # For each part, train a model
             for part_id in range(num_parts):
@@ -100,22 +100,29 @@ class LocalModelManager:
             self.logger.info(f"Repartitioning data to {new_parts} parts")
             return df.repartition(new_parts)
         return df
-
+        
     def _get_partition_data(self, df: DataFrame, partition_id: int) -> pd.DataFrame:
         """
-        Get the rows from one part and convert them to a pandas DataFrame.
-        We use glom() to group the RDD by parts, then pick the one we need.
+        Get the rows from a specific part and convert them to a pandas DataFrame
+        using a targeted mapPartitions.
         """
         try:
-            parts = df.rdd.glom().collect()
-            if partition_id < 0 or partition_id >= len(parts):
-                self.logger.warning(f"Part {partition_id} does not exist")
+            def get_target_partition(index, iterator): # iterator: Any 
+                if index  == partition_id:
+                    rows = list(iterator)
+                    yield rows
+
+            partition_data_list = df.rdd.mapPartitionsWithIndex(get_target_partition) \
+                                        .filter(lambda x: x is not None) \
+                                        .flatMap(lambda x: x) \
+                                        .collect()
+
+            if not partition_data_list:
+                self.logger.warning(f"Part {partition_id} is empty or does not exist.")
                 return None
-            rows = parts[partition_id]
-            if not rows:
-                self.logger.warning(f"Part {partition_id} is empty")
-                return None
-            return pd.DataFrame([row.asDict() for row in rows])
+
+            return pd.DataFrame([row.asDict() for row in partition_data_list])
+
         except Exception as e:
             self.logger.error(f"Error in _get_partition_data: {str(e)}")
             return None
