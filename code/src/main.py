@@ -5,8 +5,10 @@ from preprocessing import Preprocessor
 from local_model_manager_DT import LocalModelManager_DT
 from prediction_manager import PredictionManager
 from local_model_manager import LocalModelManager
+from evaluation import Evaluator
 from utilities import show_compact
 import time
+import json
 
 
 
@@ -24,7 +26,7 @@ def main():
             print("\nDatabricks: Created Spark session!")
         config_DataIngestion = {
             "data_path": "/mnt/2025-team6/fulldataset_ECG5000.csv",
-            "data_percentage": 0.005  # % Percentage of data to load for SW development
+            "data_percentage": 0.05  # % Percentage of data to load for SW development
         }
     else:
         # If not in Databricks, we are running locally.
@@ -51,50 +53,69 @@ def main():
         config_DataIngestion = {
             # "data_path": project_root + "/ECG5000/*.tsv" # IF WE DECIDE TO USE .tsv FILES
             "data_path": project_root + "/fulldataset_ECG5000.csv", # IF WE DECIDE TO USE .csv FILES
-            "data_percentage": 0.005  # % Percentage of data to load for SW development
+            "data_percentage": 0.5  #*100% Percentage of data to load for SW development
             }   
     
-    start = time.time()
+    
+    # Initialize evaluator
+    evaluator = Evaluator()
+    
+    
+    
     #===================================== LOAD DATA =====================================
+    # Time data loading
+    evaluator.start_timer("data_loading")
     # Create an instance of DataIngestion and load the data.
     ingestion = DataIngestion(spark, config_DataIngestion)
     df = ingestion.load_data()
-
-    #df.printSchema()
-    # print("\nSample of raw data:")
-    # show_compact(df, num_rows=5, num_cols=3)
+    evaluator.record_time("data_loading")
+    
 
     #=================================== PREPROCESS DATA ==================================
     # Create an instance of Preprocessor and run all cleaning steps.
-    config_preproc = {}
+    evaluator.start_timer("preprocessing")
+    config_preproc = {}    
     preprocessor = Preprocessor(config_preproc)
     preprocessed_df = preprocessor.run_preprocessing(df)
-    data_load_time = time.time()
-    print(f"\nData load + preprocessing time: {data_load_time-start:.4f} seconds\n")
+    evaluator.record_time("preprocessing")
     
     print("Sample of preprocessed data:")
     show_compact(preprocessed_df, num_rows=5, num_cols=3)
     
-    #==================================== TRAIN DIFFERENT MODELS ===========================
-    # Train local models on the preprocessed data
+    #==================================== SPLIT DATA ======================================
+    # Just a simple split into train and test sets.
+    train_df, test_df = preprocessed_df.randomSplit([0.8, 0.2], seed=123)
     
+    #==================================== TRAIN DIFFERENT MODELS ===========================
 
     #************************************** PF- using AEON ********************************
-    start = time.time()
+    evaluator.start_timer("training")
     print("\nHere we train Proximity forests on the preprocessed data.")
-    model_manager = LocalModelManager({"num_partitions": 2, "model_params": {"random_state": 42}})
-    ensemble = model_manager.train_ensemble(preprocessed_df)
-    training_time = time.time()
-    print(f"Training time: {training_time-start:.4f} seconds")
+    model_manager = LocalModelManager(config = None)
+    ensemble = model_manager.train_ensemble(train_df)
+    evaluator.record_time("training")    
+    
+    #model_manager.print_ensemble_details()
 
     #============================ TEST DIFFERENT MODELS ======================================
-    start = time.time()
+    evaluator.start_timer("prediction")
     predictor = PredictionManager(spark, ensemble)
-    predictions_df = predictor.generate_predictions(preprocessed_df)
-    prediction_time = time.time()
-    print(f"Prediction time: {prediction_time-start:.4f} seconds")
+    predictions_df = predictor.generate_predictions(test_df)
+    evaluator.record_time("prediction")
+    
+    # Show predictions
+    print("\nPredictions:")    
+    predictions_df.groupBy("prediction").count().show()
+    
     
     #============================= EVALUATE DIFFERENT MODELS =================================
+    
+    # Generate final report
+    report = evaluator.log_metrics(predictions_df, ensemble=ensemble)
+    print("\nFinal Report:")
+    print(json.dumps(report, indent=2))
+    
+    
     # If running locally, stop the Spark session.
     # In Databricks, do not stop the session as it is managed by the platform.
     if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
