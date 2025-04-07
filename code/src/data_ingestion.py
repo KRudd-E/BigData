@@ -40,7 +40,7 @@ class DataIngestion:
         
         data_percentage = self.config.get("data_percentage", 1.0)
         
-        print(f"Data Path is {data_path} and loading {data_percentage}% of data ++++++++++++++++++++++")
+        print(f"Data Path is {data_path} and loading {data_percentage*100}% of data ++++++++++++++++++++++")
         columns = [f"_c{i}" for i in range(1, 141)]
         
         # Create the schema correctly
