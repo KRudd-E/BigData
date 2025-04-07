@@ -11,6 +11,15 @@ import time
 import json
 
 
+import subprocess
+import sys
+try:
+    import aeon
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "aeon"])
+    import aeon
+import logging    
+
 
 def main():
     #======================== SET UP SPARK SESSION ========================
@@ -90,7 +99,7 @@ def main():
 
     #************************************** PF- using AEON ********************************
     evaluator.start_timer("training")
-    print("\nHere we train Proximity forests on the preprocessed data.")
+    print("\nHere we train Proximity forest ensamble on the preprocessed data.")
     model_manager = LocalModelManager(config = None)
     ensemble = model_manager.train_ensemble(train_df)
     evaluator.record_time("training")    

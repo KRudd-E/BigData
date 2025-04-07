@@ -8,21 +8,12 @@ Then, it gathers all the models into one Proximity Forest ensemble that we can u
 NOTE: Trains models in parallel across Spark worker nodes. Number of trees = number of partitions.
 """
 
-import subprocess
-import sys
 import pickle
 import pandas as pd
 import numpy as np
-from aeon.classification.distance_based import ProximityTree, ProximityForest
 from pyspark.sql import DataFrame
-
-try:
-    import aeon
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "aeon"])
-    import aeon
-import logging    
-
+from aeon.classification.distance_based import ProximityTree, ProximityForest
+import logging
 
 class LocalModelManager:
     """

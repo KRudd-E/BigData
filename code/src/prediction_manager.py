@@ -30,7 +30,7 @@ class PredictionManager:
         self.logger.setLevel(logging.INFO)
         
         # Basic model validation
-        if not ensemble or not hasattr(ensemble, 'is_fitted_') or not ensemble.is_fitted_:
+        if not ensemble or not hasattr(ensemble, 'is_fitted') or not ensemble.is_fitted_:
             raise ValueError("Model is not trained. First call LocalModelManager.train_ensemble()")
 
 
