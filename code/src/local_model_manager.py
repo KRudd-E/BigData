@@ -11,8 +11,9 @@ NOTE: Trains models in parallel across Spark worker nodes. Number of trees = num
 import pickle
 import pandas as pd
 import numpy as np
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Window
 from aeon.classification.distance_based import ProximityTree, ProximityForest
+from pyspark.sql import functions as F
 import logging
 
 class LocalModelManager:
@@ -38,7 +39,7 @@ class LocalModelManager:
         """       
         # Set default configuration
         self.config = {
-            "num_partitions": 2,  
+            "num_partitions": 10,  
             "tree_params": {
                 "n_splitters": 5,  # Matches ProximityTree default
                 "max_depth": None,  
@@ -75,7 +76,7 @@ class LocalModelManager:
         
         """
         # Repartition the data if our config says so
-        df = self._repartition_data(df)
+        df = self._repartition_data_Balanced(df)
         
         tree_params = self.config["tree_params"]      
         
@@ -123,11 +124,31 @@ class LocalModelManager:
             print("Warning: No trees were trained!")
             return None
    
-    def _repartition_data(self, df: DataFrame) -> DataFrame:
+    def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
         if "num_partitions" in self.config:
             new_parts = self.config["num_partitions"]  # ✅ Get value first
             self.logger.info(f"Repartitioning data to {new_parts} parts")
             return df.repartition(new_parts)
+        return df
+    
+    def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
+        if "num_partitions" in self.config and "label_col" in self.config:
+            num_parts = self.config["num_partitions"]
+            label_col = self.config["label_col"]
+            self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
+            
+            # Assign partition IDs (0 to num_parts-1 per class)
+            # Subtracting 1 so that modulo is computed from 0
+            window = Window.partitionBy(label_col).orderBy(F.rand())
+            df = df.withColumn("_partition_id", ((F.row_number().over(window) - 1) % num_parts).cast("int"))
+            
+            # Force exact number of partitions using partition_id
+            df = df.repartition(num_parts, F.col("_partition_id"))
+            
+            # For production, drop the helper column.
+            if not preserve_partition_id:
+                df = df.drop("_partition_id")
+            return df
         return df
         
     def _set_forest_classes(self):
@@ -206,3 +227,65 @@ class LocalModelManager:
                     print(f"{indent}    Branch on exemplar of class '{label}':")
                     self._print_tree_node_info(child_node, depth + 1)
 
+   
+    
+# ==================================================== TESTING ====================================================
+# This is a test script to validate the functionality of the LocalModelManager class.
+# It creates a dummy dataset, initializes the LocalModelManager, and tests the stratified repartitioning and training of the ensemble.
+# It also prints the repartitioned DataFrame and the distribution of labels per partition.
+# It is not part of the LocalModelManager class and should be run separately.   
+
+
+from pyspark.sql import SparkSession
+
+
+spark = SparkSession.builder \
+    .appName("StratifiedRepartitionTest") \
+    .master("local[*]") \
+    .getOrCreate()
+
+# Create dummy dataset
+data = (
+    [(10, [5.0, 6.0]) for _ in range(4)] +   # Class 0: 5 samples
+    [(11, [6.0, 7.0]) for _ in range(11)] +   # Class 1: 8 samples
+    [(12, [7.0, 8.0]) for _ in range(3)]     # Class 2: 3 samples
+)
+df = spark.createDataFrame(data, ["label", "features"])
+print("Original DataFrame:")
+df.show(15, truncate=False)
+
+def test_stratified_repartition():
+
+    config = {
+        "num_partitions": 3,  # The number of partitions to use
+        "label_col": "label"  # The column with the class labels
+    }
+    processor = LocalModelManager(config)
+    
+    # Repartition the data *and* preserve the helper column for verification
+    repartitioned_df = processor._repartition_data_Balanced(df, preserve_partition_id=True)
+    
+    # Print the repartitioned DataFrame (with _partition_id) for visual inspection
+    print("Repartitioned DataFrame (with preserved _partition_id):")
+    repartitioned_df.show(truncate=False)
+    
+    # =================================================================
+    # Validate Partition Count using our computed key
+    # =================================================================
+    # Group by our computed _partition_id and class label
+    distribution_df = repartitioned_df.groupBy("_partition_id", "label") \
+                                      .count() \
+                                      .orderBy("_partition_id", "label")
+    print("Distribution of labels per computed _partition_id:")
+    distribution_df.show(truncate=False)
+    
+    # Calculate total counts per label 
+    total_counts_df = repartitioned_df.groupBy("label").count().orderBy("label")
+    print("Total counts per label:")
+    total_counts_df.show(truncate=False)
+      
+    print("All tests passed successfully.")
+
+
+# Run the test
+test_stratified_repartition()
