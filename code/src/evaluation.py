@@ -227,7 +227,7 @@ class Evaluator:
     def log_metrics(self, predictions_df: DataFrame, ensemble=None) -> Dict:
         """Run complete evaluation pipeline"""
         self.calculate_classification_metrics(predictions_df)
-        #self._log_confusion_matrix(predictions_df)
+       # self._log_confusion_matrix(predictions_df)
         
         if ensemble:
             self.calculate_model_complexity(ensemble)
@@ -261,50 +261,97 @@ class Evaluator:
         
         return report, self.class_labels
     
+    
     def _log_confusion_matrix(self, predictions_df):
-        
-        #Log confusion matrix
+        """
+        Log the confusion matrix by converting the predictions DataFrame
+        into an RDD of (prediction, label) tuples and calculating metrics.
+        """
+        # First, cast 'prediction' and 'label' to integer and convert each row to a tuple.
         prediction_and_labels = predictions_df.select(
             F.col("prediction").cast("integer"), 
             F.col("label").cast("integer")
         ).rdd.map(tuple)
         
-        if prediction_and_labels.isEmpty():
+        # Debug: Check how many tuples you have and print a few
+        count = prediction_and_labels.count()
+        self.logger.debug(f"Count of (prediction, label) tuples: {count}")
+        # Optionally, print the first 5 tuples (be careful with large datasets)
+        sample_tuples = prediction_and_labels.take(5)
+        self.logger.debug(f"Sample (prediction, label) tuples: {sample_tuples}")
+        
+        # If the RDD is empty, log a warning and exit the function.
+        if count == 0:
             self.logger.warning("No valid data for confusion matrix")
             return
-        metrics = MulticlassMetrics(prediction_and_labels)
-        self.metrics["confusion_matrix"] = metrics.confusionMatrix().toArray().tolist()
+        
+        # Calculate confusion matrix metrics using MLlib's MulticlassMetrics.
+        try:
+            metrics = MulticlassMetrics(prediction_and_labels)
+            cm = metrics.confusionMatrix().toArray().tolist()
+            self.metrics["confusion_matrix"] = cm
+            self.logger.debug(f"Confusion matrix computed: {cm}")
+        except Exception as e:
+            self.logger.error(f"Failed to compute confusion matrix: {str(e)}")
+            raise
 
     def _log_class_wise_metrics(self, predictions_df: DataFrame):
-
-        #Log per-class metrics        
+        """
+        Log per-class metrics (precision, recall, f1) for each class using MLlib.
+        
+        Steps:
+        1. Convert the predictions and labels to integers and then to an RDD of tuples.
+        2. Check that the RDD is not empty; log a warning if it is.
+        3. Compute the MLlib MulticlassMetrics.
+        4. Get unique classes from the DataFrame, sort them, and log them.
+        5. For each class, compute precision, recall, and f1 score.
+        6. Save all the per-class metrics in the self.metrics dictionary.
+        """
+        # Convert predictions and labels to integer type and form an RDD of tuples
         prediction_and_labels = predictions_df.select(
             F.col("prediction").cast("integer"), 
             F.col("label").cast("integer")
         ).rdd.map(tuple)
-        
-        if prediction_and_labels.isEmpty():
+
+        # Debug: Count the number of (prediction, label) tuples
+        count = prediction_and_labels.count()
+        self.logger.debug(f"Total (prediction, label) pairs for class metrics: {count}")
+        if count == 0:
             self.logger.warning("No valid data for class wise metrics plot")
             return
-        
-        metrics = MulticlassMetrics(prediction_and_labels)
-        
-        # Get unique classes from the DataFrame instead of the matrix
-        classes = [float(row["label"]) for row in predictions_df.select("label").distinct().collect()]
-        classes = sorted([int(c) for c in classes])  # Convert to sorted integers
-        
-    
+
+        # Compute metrics using MLlib
+        try:
+            metrics = MulticlassMetrics(prediction_and_labels)
+        except Exception as e:
+            self.logger.error(f"Error computing MLlib metrics: {str(e)}")
+            return
+
+        # Get the unique classes from the DataFrame
+        try:
+            classes = [float(row["label"]) for row in predictions_df.select("label").distinct().collect()]
+            classes = sorted([int(c) for c in classes])
+            self.logger.debug(f"Unique classes found: {classes}")
+        except Exception as e:
+            self.logger.error(f"Error fetching unique classes: {str(e)}")
+            classes = []
+
         class_metrics = {}
+        # For each class, calculate precision, recall, and f1 score
         for cls in classes:
             try:
-                
                 class_key = f"class_{cls}"
+                precision = metrics.precision(float(cls))
+                recall = metrics.recall(float(cls))
+                f1 = metrics.fMeasure(float(cls), beta=1.0)
                 class_metrics[class_key] = {
-                    "precision": metrics.precision(float(cls)),
-                    "recall": metrics.recall(float(cls)),
-                    "f1": metrics.fMeasure(float(cls), beta=1.0)
+                    "precision": precision,
+                    "recall": recall,
+                    "f1": f1
                 }
+                self.logger.debug(f"Metrics for class {cls}: precision={precision}, recall={recall}, f1={f1}")
             except Exception as e:
                 self.logger.warning(f"Class {cls} metrics error: {str(e)}")
         
+        # Save the computed metrics in our metrics dictionary
         self.metrics["class_wise"] = class_metrics

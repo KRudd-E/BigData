@@ -118,24 +118,24 @@ class PipelineController:
         
         report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=ensemble)
         
-        # Plot confusion matrix with proper labels
-        if "confusion_matrix" in report:
-            plot_confusion_matrix(
-                np.array(report["confusion_matrix"]),
-                class_names,  
-                save_path="pdf_results/confusion_matrix.pdf",
-                show=False
-            )
+        # # Plot confusion matrix with proper labels
+        # if "confusion_matrix" in report:
+        #     plot_confusion_matrix(
+        #         np.array(report["confusion_matrix"]),
+        #         class_names,  
+        #         save_path="pdf_results/confusion_matrix.pdf",
+        #         show=False
+        #     )
         
-        # Plot class metrics with proper labels
-        if "class_wise" in report:
-            plot_class_metrics(
-                report["class_wise"],
-                class_names,  
-                save_path="pdf_results/class_performance.pdf",
-                show=False,
-                class_names=class_names  # Pass to plotting function
-            )
+        # # Plot class metrics with proper labels
+        # if "class_wise" in report:
+        #     plot_class_metrics(
+        #         report["class_wise"],
+        #         class_names,  
+        #         save_path="pdf_results/class_performance.pdf",
+        #         show=False,
+        #         class_names=class_names  # Pass to plotting function
+        #     )
 
         # Save report 
         with open("experiment_report.json", "w") as f:
