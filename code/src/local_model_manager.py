@@ -236,56 +236,56 @@ class LocalModelManager:
 # It is not part of the LocalModelManager class and should be run separately.   
 
 
-from pyspark.sql import SparkSession
+# from pyspark.sql import SparkSession
 
 
-spark = SparkSession.builder \
-    .appName("StratifiedRepartitionTest") \
-    .master("local[*]") \
-    .getOrCreate()
+# spark = SparkSession.builder \
+#     .appName("StratifiedRepartitionTest") \
+#     .master("local[*]") \
+#     .getOrCreate()
 
-# Create dummy dataset
-data = (
-    [(10, [5.0, 6.0]) for _ in range(4)] +   # Class 0: 5 samples
-    [(11, [6.0, 7.0]) for _ in range(11)] +   # Class 1: 8 samples
-    [(12, [7.0, 8.0]) for _ in range(3)]     # Class 2: 3 samples
-)
-df = spark.createDataFrame(data, ["label", "features"])
-print("Original DataFrame:")
-df.show(15, truncate=False)
+# # Create dummy dataset
+# data = (
+#     [(10, [5.0, 6.0]) for _ in range(4)] +   # Class 0: 5 samples
+#     [(11, [6.0, 7.0]) for _ in range(11)] +   # Class 1: 8 samples
+#     [(12, [7.0, 8.0]) for _ in range(3)]     # Class 2: 3 samples
+# )
+# df = spark.createDataFrame(data, ["label", "features"])
+# print("Original DataFrame:")
+# df.show(15, truncate=False)
 
-def test_stratified_repartition():
+# def test_stratified_repartition():
 
-    config = {
-        "num_partitions": 3,  # The number of partitions to use
-        "label_col": "label"  # The column with the class labels
-    }
-    processor = LocalModelManager(config)
+#     config = {
+#         "num_partitions": 3,  # The number of partitions to use
+#         "label_col": "label"  # The column with the class labels
+#     }
+#     processor = LocalModelManager(config)
     
-    # Repartition the data *and* preserve the helper column for verification
-    repartitioned_df = processor._repartition_data_Balanced(df, preserve_partition_id=True)
+#     # Repartition the data *and* preserve the helper column for verification
+#     repartitioned_df = processor._repartition_data_Balanced(df, preserve_partition_id=True)
     
-    # Print the repartitioned DataFrame (with _partition_id) for visual inspection
-    print("Repartitioned DataFrame (with preserved _partition_id):")
-    repartitioned_df.show(truncate=False)
+#     # Print the repartitioned DataFrame (with _partition_id) for visual inspection
+#     print("Repartitioned DataFrame (with preserved _partition_id):")
+#     repartitioned_df.show(truncate=False)
     
-    # =================================================================
-    # Validate Partition Count using our computed key
-    # =================================================================
-    # Group by our computed _partition_id and class label
-    distribution_df = repartitioned_df.groupBy("_partition_id", "label") \
-                                      .count() \
-                                      .orderBy("_partition_id", "label")
-    print("Distribution of labels per computed _partition_id:")
-    distribution_df.show(truncate=False)
+#     # =================================================================
+#     # Validate Partition Count using our computed key
+#     # =================================================================
+#     # Group by our computed _partition_id and class label
+#     distribution_df = repartitioned_df.groupBy("_partition_id", "label") \
+#                                       .count() \
+#                                       .orderBy("_partition_id", "label")
+#     print("Distribution of labels per computed _partition_id:")
+#     distribution_df.show(truncate=False)
     
-    # Calculate total counts per label 
-    total_counts_df = repartitioned_df.groupBy("label").count().orderBy("label")
-    print("Total counts per label:")
-    total_counts_df.show(truncate=False)
+#     # Calculate total counts per label 
+#     total_counts_df = repartitioned_df.groupBy("label").count().orderBy("label")
+#     print("Total counts per label:")
+#     total_counts_df.show(truncate=False)
       
-    print("All tests passed successfully.")
+#     print("All tests passed successfully.")
 
 
-# Run the test
-test_stratified_repartition()
+# # Run the test
+# test_stratified_repartition()
