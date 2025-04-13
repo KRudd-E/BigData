@@ -10,7 +10,7 @@ if __name__ == "__main__":
         "local_data_path": "/fulldataset_ECG5000.csv",
         "data_percentage": 0.1,
         "local_model_config": {
-            "num_partitions": 2, 
+            "num_partitions":2, 
             "model_params": {
                 "random_state": 1234
                 }

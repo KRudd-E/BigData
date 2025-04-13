@@ -7,9 +7,10 @@ Computes performance metrics for the model pipeline including:
 - Runtime per stage (data load, preprocessing, training, prediction)
 - Scale-up efficiency metrics
 """
-
+from pyspark.sql import functions as F 
 from pyspark.sql import DataFrame
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.mllib.evaluation import MulticlassMetrics
 import time
 import logging
 import numpy as np
@@ -22,14 +23,23 @@ class Evaluator:
         self.start_times = {}
         self.precision = decimal_precision
         self.track_memory = track_memory
+        class_labels: Dict[int, str] = None  
+        self.class_labels = class_labels or {
+            1: "Normal Beat (N)",
+            2: "R-on-T PVC (r)",
+            3: "Supraventricular Beat (S)",
+            4: "PVC (V)",
+            5: "Unclassifiable (Q)"
+        }
         self.logger = logging.getLogger(__name__)
         
-        # Configure logging
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.INFO)
+                # Configure logging only if no handlers are present
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+            self.logger.setLevel(logging.INFO)
 
     def start_timer(self, stage_name: str):
         """Start timing for a pipeline stage"""
@@ -177,6 +187,14 @@ class Evaluator:
                 "avg_leaves": format_value(self.metrics.get("avg_leaves", 0), decimal_precision),
                 "avg_splits": format_value(self.metrics.get("avg_splits", 0), decimal_precision)
             },
+            
+            "confusion_matrix": self.metrics.get("confusion_matrix", []),
+            
+            "class_wise": { 
+                k: format_value(v, decimal_precision)
+                for k, v in self.metrics.get("class_wise", {}).items()
+            },
+            
             "_meta": {
                 "decimal_precision": decimal_precision,
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
@@ -209,10 +227,12 @@ class Evaluator:
     def log_metrics(self, predictions_df: DataFrame, ensemble=None) -> Dict:
         """Run complete evaluation pipeline"""
         self.calculate_classification_metrics(predictions_df)
+        #self._log_confusion_matrix(predictions_df)
         
         if ensemble:
             self.calculate_model_complexity(ensemble)
-            
+           #self._log_class_wise_metrics(predictions_df)
+                
         report = self.generate_report()
         
         # Log performance metrics
@@ -238,5 +258,53 @@ class Evaluator:
             self.logger.info("\n=== Model Complexity ===")
             for metric, value in report["complexity"].items():
                 self.logger.info(f"{metric.replace('_', ' ').title()}: {value}")
+        
+        return report, self.class_labels
+    
+    def _log_confusion_matrix(self, predictions_df):
+        
+        #Log confusion matrix
+        prediction_and_labels = predictions_df.select(
+            F.col("prediction").cast("integer"), 
+            F.col("label").cast("integer")
+        ).rdd.map(tuple)
+        
+        if prediction_and_labels.isEmpty():
+            self.logger.warning("No valid data for confusion matrix")
+            return
+        metrics = MulticlassMetrics(prediction_and_labels)
+        self.metrics["confusion_matrix"] = metrics.confusionMatrix().toArray().tolist()
+
+    def _log_class_wise_metrics(self, predictions_df: DataFrame):
+
+        #Log per-class metrics        
+        prediction_and_labels = predictions_df.select(
+            F.col("prediction").cast("integer"), 
+            F.col("label").cast("integer")
+        ).rdd.map(tuple)
+        
+        if prediction_and_labels.isEmpty():
+            self.logger.warning("No valid data for class wise metrics plot")
+            return
+        
+        metrics = MulticlassMetrics(prediction_and_labels)
+        
+        # Get unique classes from the DataFrame instead of the matrix
+        classes = [float(row["label"]) for row in predictions_df.select("label").distinct().collect()]
+        classes = sorted([int(c) for c in classes])  # Convert to sorted integers
+        
+    
+        class_metrics = {}
+        for cls in classes:
+            try:
                 
-        return report
+                class_key = f"class_{cls}"
+                class_metrics[class_key] = {
+                    "precision": metrics.precision(float(cls)),
+                    "recall": metrics.recall(float(cls)),
+                    "f1": metrics.fMeasure(float(cls), beta=1.0)
+                }
+            except Exception as e:
+                self.logger.warning(f"Class {cls} metrics error: {str(e)}")
+        
+        self.metrics["class_wise"] = class_metrics

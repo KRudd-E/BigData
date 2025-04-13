@@ -10,6 +10,7 @@ It acts as the main coordinator of the process.
 
 import os
 import json
+import numpy as np
 from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
@@ -17,6 +18,7 @@ from local_model_manager import LocalModelManager
 from prediction_manager import PredictionManager
 from evaluation import Evaluator
 from utilities import show_compact
+from visualization import plot_confusion_matrix, plot_class_metrics
 
 class PipelineController:
     def __init__(self, config):
@@ -91,6 +93,8 @@ class PipelineController:
 
         print("\nSample of preprocessed data:")
         show_compact(preprocessed_df, num_rows=5, num_cols=3)
+        
+        train_df, test_df = preprocessed_df.randomSplit([0.8, 0.2], seed=123)
 
         # Training local models
         self.evaluator.start_timer("training")
@@ -110,7 +114,34 @@ class PipelineController:
         predictions_df.groupBy("prediction").count().show()
 
         # Evaluation
-        report = self.evaluator.log_metrics(predictions_df, ensemble=ensemble)
+        
+        
+        report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=ensemble)
+        
+        # Plot confusion matrix with proper labels
+        if "confusion_matrix" in report:
+            plot_confusion_matrix(
+                np.array(report["confusion_matrix"]),
+                class_names,  
+                save_path="pdf_results/confusion_matrix.pdf",
+                show=False
+            )
+        
+        # Plot class metrics with proper labels
+        if "class_wise" in report:
+            plot_class_metrics(
+                report["class_wise"],
+                class_names,  
+                save_path="pdf_results/class_performance.pdf",
+                show=False,
+                class_names=class_names  # Pass to plotting function
+            )
+
+        # Save report 
+        with open("experiment_report.json", "w") as f:
+            json.dump(report, f, indent=2)
+            
+    
         print("\nFinal Report:")
         print(json.dumps(report, indent=2))
 
