@@ -2,7 +2,6 @@ import os
 from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
-from local_model_manager_DT import LocalModelManager_DT
 from prediction_manager import PredictionManager
 from local_model_manager import LocalModelManager
 from evaluation import Evaluator
