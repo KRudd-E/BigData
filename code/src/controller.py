@@ -102,7 +102,8 @@ class PipelineController:
         self.predictor = PredictionManager(self.spark, ensemble)
         
         self.evaluator.start_timer("prediction")
-        predictions_df = self.predictor.generate_predictions(preprocessed_df)  # Using preprocessed data as test here
+        # TODO: Using preprocessed data as test here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        predictions_df = self.predictor.generate_predictions(preprocessed_df)  
         self.evaluator.record_time("prediction")
         
         print("\nPredictions:")
@@ -117,21 +118,3 @@ class PipelineController:
         if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
             self.spark.stop()
             print("\nLocal: Stopped Spark session!")
-
-
-if __name__ == "__main__":
-    print("Starting pipeline via controller.py")
-    # Example config; adjust paths and parameters as needed.
-    config = {
-        "databricks_data_path": "/mnt/2025-team6/fulldataset_ECG5000.csv",
-        "local_data_path": "/fulldataset_ECG5000.csv",
-        "data_percentage": 0.5,
-        "local_model_config": {
-            "num_partitions": 2, 
-            "model_params": {
-                "random_state": 1234
-                }
-            }
-    }
-    controller = PipelineController(config)
-    controller.run()
