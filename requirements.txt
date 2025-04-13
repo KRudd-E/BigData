@@ -14,6 +14,6 @@ scikit-learn
 pyspark
 sktime
 aeon
-
+dtaidistance 
 # Additional TSC Library
 # wildboar # - if we are using Python 3.11, need a wildboar version that supports it -  pip install wildboar

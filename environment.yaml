@@ -14,5 +14,6 @@ dependencies:
   - aeon
   - pip             # so pip installs in this env
   - pip:
-    - tensorflow==2.12.0
-    - wildboar
+      - tensorflow==2.12.0
+      - wildboar
+      - dtaidistance
