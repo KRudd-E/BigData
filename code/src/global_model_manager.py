@@ -77,21 +77,26 @@ class GlobalModelManager:
 
         return iter(partition_data)
     
-    def calculate_partition_gini(iterator):
-        labels = [row['label'] for row in iterator]
+    def calculate_partition_gini(self, iterator):
+        partition_data = list(iterator)
+        labels = [row['label'] for row in partition_data]
 
+        # Calculate Gini impurity for the partition
         label_counts_dict = {}
         for label in labels:
-            if label in label_counts_dict:
-                label_counts_dict[label] += 1
-            else:
-                label_counts_dict[label] = 1
-        
+            label_counts_dict[label] = label_counts_dict.get(label, 0) + 1
+
         total = sum(label_counts_dict.values())
         proportion_sqrd_values = [(count / total) ** 2 for count in label_counts_dict.values()]
         gini_impurity = 1 - sum(proportion_sqrd_values)
-        
-        return iter([gini_impurity])
+
+        # Add Gini impurity to each row in the partition
+        updated_rows = []
+        for row in partition_data:
+            updated_row = {**row, "partition_gini": gini_impurity}
+            updated_rows.append(updated_row)
+
+        return iter(updated_rows)
     
     def calculate_gini(self, labels):
         label_counts = {}
