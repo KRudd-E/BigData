@@ -17,7 +17,7 @@ from preprocessing import Preprocessor
 from local_model_manager import LocalModelManager
 from prediction_manager import PredictionManager
 from evaluation import Evaluator
-from utilities import show_compact
+from utilities import show_compact, randomSplit_dist
 from visualization import plot_confusion_matrix, plot_class_metrics
 
 class PipelineController:
@@ -82,33 +82,30 @@ class PipelineController:
           
 
         # Data Ingestion
-        self.evaluator.start_timer("ingestion")
+        self.evaluator.start_timer("Ingestion")
         df = self.ingestion.load_data()
-        self.evaluator.record_time("ingestion")
+        self.evaluator.record_time("Ingestion")
 
         # Preprocessing
-        self.evaluator.start_timer("preprocessing")
+        self.evaluator.start_timer("Preprocessing")
         preprocessed_df = self.preprocessor.run_preprocessing(df)
-        self.evaluator.record_time("preprocessing")
+        self.evaluator.record_time("Preprocessing")
 
-        print("\nSample of preprocessed data:")
-        show_compact(preprocessed_df, num_rows=5, num_cols=3)
+        #print("\nSample of preprocessed data:")
+        #show_compact(preprocessed_df, num_rows=5, num_cols=3)
         
-        train_df, test_df = preprocessed_df.randomSplit([0.8, 0.2], seed=123)
+        train_df, test_df = randomSplit_dist(preprocessed_df, weights=[0.8, 0.2], seed=123)
 
         # Training local models
-        self.evaluator.start_timer("training")
-        ensemble = self.model_manager.train_ensemble(preprocessed_df)
-        self.evaluator.record_time("training")
-
+        self.evaluator.start_timer("Training")
+        ensemble = self.model_manager.train_ensemble(train_df)
+        self.evaluator.record_time("Training")
 
         # Prediction
+        self.evaluator.start_timer("Prediction")
         self.predictor = PredictionManager(self.spark, ensemble)
-        
-        self.evaluator.start_timer("prediction")
-        # TODO: Using preprocessed data as test here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        predictions_df = self.predictor.generate_predictions(preprocessed_df)  
-        self.evaluator.record_time("prediction")
+        predictions_df = self.predictor.generate_predictions(test_df)  
+        self.evaluator.record_time("Prediction")
         
         print("\nPredictions:")
         predictions_df.groupBy("prediction").count().show()
@@ -142,8 +139,8 @@ class PipelineController:
             json.dump(report, f, indent=2)
             
     
-        print("\nFinal Report:")
-        print(json.dumps(report, indent=2))
+        #print("\nFinal Report:")
+        #print(json.dumps(report, indent=2))
 
         # Clean up spark session if running locally
         if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
