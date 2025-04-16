@@ -1,0 +1,27 @@
+{
+  "performance": {
+    "accuracy": 0.9417,
+    "error_rate": 0.0583,
+    "precision": 0.932672,
+    "recall": 0.9417,
+    "f1_score": 0.926231
+  },
+  "timing": {
+    "Ingestion_time": 0.1757,
+    "Preprocessing_time": 1.2304,
+    "Training_time": 6.6808,
+    "Prediction_time": 0.1435
+  },
+  "complexity": {
+    "num_trees": 8,
+    "avg_depth": 11.375,
+    "avg_leaves": 60.625,
+    "avg_splits": 40.875
+  },
+  "confusion_matrix": [],
+  "class_wise": {},
+  "_meta": {
+    "decimal_precision": 8,
+    "timestamp": "2025-04-16 15:01:38"
+  }
+}

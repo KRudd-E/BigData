@@ -20,7 +20,7 @@ from evaluation import Evaluator
 from utilities import show_compact, randomSplit_dist
 from visualization import plot_confusion_matrix, plot_class_metrics
 
-class PipelineController:
+class PipelineController_Loop:
     def __init__(self, config):
         """
         Initialize the controller with our configuration.
@@ -63,7 +63,7 @@ class PipelineController:
             print("Current working directory (project root):", os.getcwd())
 
     def run(self):
-        for i in range(2,30):
+        for i in range(2,4): #! iteration count
             """
             Run the whole pipeline:
             - Setup Spark session.
@@ -73,7 +73,7 @@ class PipelineController:
             - Generate predictions.
             - Evaluate the results.
             """
-            self.config["local_model_config"]["num_partitions"] = i
+            self.config["local_model_config"]["num_partitions"] = i #! iterates over num partitions. 
             
             self._setup_spark()
             
@@ -137,7 +137,7 @@ class PipelineController:
             #     )
 
             # Save report 
-            with open("experiment_report.json", "w") as f:
+            with open(f"code/src/reports/{i}.json", "w") as f: #! these will overwrite if run again. 
                 json.dump(report, f, indent=2)
         
             print("\nFinal Report:")

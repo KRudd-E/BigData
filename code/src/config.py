@@ -12,6 +12,7 @@ Typically, it's created early on, but it can be refined later.
 config = {
     "databricks_data_path": "/mnt/2025-team6/fulldataset_ECG5000.csv",
     "local_data_path": "/fulldataset_ECG5000.csv",
+    "label_col": "label",
     "data_percentage": 1.0,
     "local_model_config": {
         "num_partitions": 10,  

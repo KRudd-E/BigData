@@ -104,8 +104,8 @@ class Preprocessor:
         return df
     
     def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
-        if "num_partitions" in self.config["local_model_config"] and "label_col" in self.config: #!!!!! label col??? this isnt being accessed. 
-            num_parts = self.config["num_partitions"]
+        if "num_partitions" in self.config["local_model_config"] and "label_col" in self.config:
+            num_parts = self.config["local_model_config"]["num_partitions"]
             label_col = self.config["label_col"]
             #self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
             
