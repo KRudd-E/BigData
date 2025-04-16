@@ -63,84 +63,87 @@ class PipelineController:
             print("Current working directory (project root):", os.getcwd())
 
     def run(self):
-        """
-        Run the whole pipeline:
-          - Setup Spark session.
-          - Load raw data.
-          - Preprocess the data.
-          - Train local models.
-          - Generate predictions.
-          - Evaluate the results.
-        """
-        self._setup_spark()
-
-        # Initialize modules
-        self.evaluator = Evaluator()
-        self.ingestion = DataIngestion(spark=self.spark, config=self.ingestion_config)
-        self.preprocessor = Preprocessor(config=self.config)
-        self.model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
-        #self.model_manager = GlobalModelManager(config=self.config.get("global_model_config", None))
-
-        # Data Ingestion
-        self.evaluator.start_timer("Ingestion")
-        df = self.ingestion.load_data()
-        self.evaluator.record_time("Ingestion")
-
-        # Preprocessing
-        self.evaluator.start_timer("Preprocessing")
-        preprocessed_df = self.preprocessor.run_preprocessing(df)
-        self.evaluator.record_time("Preprocessing")
-
-        #print("\nSample of preprocessed data:")
-        #show_compact(preprocessed_df, num_rows=5, num_cols=3)
-        
-        train_df, test_df = randomSplit_dist(preprocessed_df, weights=[0.8, 0.2], seed=123)
-
-        # Training local models
-        self.evaluator.start_timer("Training")
-        ensemble = self.model_manager.train_ensemble(train_df)
-        self.evaluator.record_time("Training")
-
-        # Prediction
-        self.evaluator.start_timer("Prediction")
-        self.predictor = PredictionManager(self.spark, ensemble)
-        predictions_df = self.predictor.generate_predictions(test_df)  
-        self.evaluator.record_time("Prediction")
-        
-        print("\nPredictions:")
-        predictions_df.groupBy("prediction").count().show() #! returns to driver
-
-        # Evaluation
-        report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=ensemble)
-        
-        # # Plot confusion matrix with proper labels
-        # if "confusion_matrix" in report:
-        #     plot_confusion_matrix(
-        #         np.array(report["confusion_matrix"]),
-        #         class_names,  
-        #         save_path="pdf_results/confusion_matrix.pdf",
-        #         show=False
-        #     )
-        
-        # # Plot class metrics with proper labels
-        # if "class_wise" in report:
-        #     plot_class_metrics(
-        #         report["class_wise"],
-        #         class_names,  
-        #         save_path="pdf_results/class_performance.pdf",
-        #         show=False,
-        #         class_names=class_names  # Pass to plotting function
-        #     )
-
-        # Save report 
-        with open("experiment_report.json", "w") as f:
-            json.dump(report, f, indent=2)
+        for i in range(2,30):
+            """
+            Run the whole pipeline:
+            - Setup Spark session.
+            - Load raw data.
+            - Preprocess the data.
+            - Train local models.
+            - Generate predictions.
+            - Evaluate the results.
+            """
+            self.config["local_model_config"]["num_partitions"] = i
             
-    
-        #print("\nFinal Report:")
-        #print(json.dumps(report, indent=2))
+            self._setup_spark()
+            
+            
+            # Initialize modules
+            self.evaluator = Evaluator()
+            self.ingestion = DataIngestion(spark=self.spark, config=self.ingestion_config)
+            self.preprocessor = Preprocessor(config=self.config)
+            self.model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
+            #self.model_manager = GlobalModelManager(config=self.config.get("global_model_config", None))
 
-        # Clean up spark session if running locally
-        if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
-            self.spark.stop()
-            print("\nLocal: Stopped Spark session!")
+            # Data Ingestion
+            self.evaluator.start_timer("Ingestion")
+            df = self.ingestion.load_data()
+            self.evaluator.record_time("Ingestion")
+
+            # Preprocessing
+            self.evaluator.start_timer("Preprocessing")
+            preprocessed_df = self.preprocessor.run_preprocessing(df)
+            self.evaluator.record_time("Preprocessing")
+
+            #print("\nSample of preprocessed data:")
+            #show_compact(preprocessed_df, num_rows=5, num_cols=3)
+            
+            train_df, test_df = randomSplit_dist(preprocessed_df, weights=[0.8, 0.2], seed=123)
+
+            # Training local models
+            self.evaluator.start_timer("Training")
+            ensemble = self.model_manager.train_ensemble(train_df)
+            self.evaluator.record_time("Training")
+
+            # Prediction
+            self.evaluator.start_timer("Prediction")
+            self.predictor = PredictionManager(self.spark, ensemble)
+            predictions_df = self.predictor.generate_predictions(test_df)  
+            self.evaluator.record_time("Prediction")
+            
+            print("\nPredictions:")
+            predictions_df.groupBy("prediction").count().show() #! returns to driver
+
+            # Evaluation
+            report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=ensemble)
+            
+            # # Plot confusion matrix with proper labels
+            # if "confusion_matrix" in report:
+            #     plot_confusion_matrix(
+            #         np.array(report["confusion_matrix"]),
+            #         class_names,  
+            #         save_path="pdf_results/confusion_matrix.pdf",
+            #         show=False
+            #     )
+            
+            # # Plot class metrics with proper labels
+            # if "class_wise" in report:
+            #     plot_class_metrics(
+            #         report["class_wise"],
+            #         class_names,  
+            #         save_path="pdf_results/class_performance.pdf",
+            #         show=False,
+            #         class_names=class_names  # Pass to plotting function
+            #     )
+
+            # Save report 
+            with open("experiment_report.json", "w") as f:
+                json.dump(report, f, indent=2)
+        
+            print("\nFinal Report:")
+            print(json.dumps(report, indent=2))
+
+            # Clean up spark session if running locally
+            if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+                self.spark.stop()
+                print("\nLocal: Stopped Spark session!")

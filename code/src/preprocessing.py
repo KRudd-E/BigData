@@ -104,7 +104,7 @@ class Preprocessor:
         return df
     
     def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
-        if "num_partitions" in self.config and "label_col" in self.config:
+        if "num_partitions" in self.config["local_model_config"] and "label_col" in self.config: #!!!!! label col??? this isnt being accessed. 
             num_parts = self.config["num_partitions"]
             label_col = self.config["label_col"]
             #self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
@@ -116,11 +116,12 @@ class Preprocessor:
             
             # Force exact number of partitions using partition_id
             df = df.repartition(num_parts, F.col("_partition_id"))
-            
+            print(f'Repartitioning to {num_parts} workers')
             # For production, drop the helper column.
             if not preserve_partition_id:
                 df = df.drop("_partition_id")
             return df
+            
         return df
 
     def run_preprocessing(self, df: DataFrame) -> DataFrame:
@@ -133,7 +134,6 @@ class Preprocessor:
         
         df = self.handle_missing_values(df)
         min_max = self.compute_min_max(df) #for normalization
-        
         df = self._repartition_data_Balanced(df)
         df = self.normalize(df, min_max)
         
