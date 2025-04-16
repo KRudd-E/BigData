@@ -76,10 +76,10 @@ class PipelineController:
 
         # Initialize modules
         self.evaluator = Evaluator()
-        self.ingestion = DataIngestion(self.spark, self.ingestion_config)
-        self.preprocessor = Preprocessor(config={})
+        self.ingestion = DataIngestion(spark=self.spark, config=self.ingestion_config)
+        self.preprocessor = Preprocessor(config=self.config)
         self.model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
-          
+        #self.model_manager = GlobalModelManager(config=self.config.get("global_model_config", None))
 
         # Data Ingestion
         self.evaluator.start_timer("Ingestion")
@@ -108,11 +108,9 @@ class PipelineController:
         self.evaluator.record_time("Prediction")
         
         print("\nPredictions:")
-        predictions_df.groupBy("prediction").count().show()
+        predictions_df.groupBy("prediction").count().show() #! returns to driver
 
         # Evaluation
-        
-        
         report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=ensemble)
         
         # # Plot confusion matrix with proper labels

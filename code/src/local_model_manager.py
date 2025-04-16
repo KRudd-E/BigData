@@ -38,25 +38,11 @@ class LocalModelManager:
               - tree_params: Extra parameters for the Proximity Tree  model.
         """       
         # Set default configuration
-        self.config = {
-            "num_partitions": 10,  
-            "tree_params": {
-                "n_splitters": 5,  # Matches ProximityTree default
-                "max_depth": None,  
-                "min_samples_split": 2,  # From ProximityTree default
-                "random_state": 123
-                },
-            "forest_params": {
-                "random_state": 123,
-                "n_jobs": -1  # Use all available cores
-                }
-            }
-                    
-        # Update with user-provided config
-        self.config.update(config or {})
+        self.config = config
         
         # List to store trained trees
         self.trees = []
+        
         # Final ensemble model
         self.ensemble = None
         
@@ -66,34 +52,33 @@ class LocalModelManager:
         self.logger.setLevel(logging.INFO)
         
 
+    # def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
+    #     if "num_partitions" in self.config:
+    #         new_parts = self.config["num_partitions"]  # ✅ Get value first
+    #         self.logger.info(f"Repartitioning data to {new_parts} parts")
+    #         return df.repartition(new_parts)
+    #     return df
     
-   
-    def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
-        if "num_partitions" in self.config:
-            new_parts = self.config["num_partitions"]  # ✅ Get value first
-            self.logger.info(f"Repartitioning data to {new_parts} parts")
-            return df.repartition(new_parts)
-        return df
-    
-    def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
-        if "num_partitions" in self.config and "label_col" in self.config:
-            num_parts = self.config["num_partitions"]
-            label_col = self.config["label_col"]
-            self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
+    # def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
+    #     if "num_partitions" in self.config and "label_col" in self.config:
+    #         num_parts = self.config["num_partitions"]
+    #         label_col = self.config["label_col"]
+    #         self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
             
-            # Assign partition IDs (0 to num_parts-1 per class)
-            # Subtracting 1 so that modulo is computed from 0
-            window = Window.partitionBy(label_col).orderBy(F.rand())
-            df = df.withColumn("_partition_id", ((F.row_number().over(window) - 1) % num_parts).cast("int"))
+    #         # Assign partition IDs (0 to num_parts-1 per class)
+    #         # Subtracting 1 so that modulo is computed from 0
+    #         window = Window.partitionBy(label_col).orderBy(F.rand())
+    #         df = df.withColumn("_partition_id", ((F.row_number().over(window) - 1) % num_parts).cast("int"))
             
-            # Force exact number of partitions using partition_id
-            df = df.repartition(num_parts, F.col("_partition_id"))
+    #         # Force exact number of partitions using partition_id
+    #         df = df.repartition(num_parts, F.col("_partition_id"))
             
-            # For production, drop the helper column.
-            if not preserve_partition_id:
-                df = df.drop("_partition_id")
-            return df
-        return df
+    #         # For production, drop the helper column.
+    #         if not preserve_partition_id:
+    #             df = df.drop("_partition_id")
+    #         return df
+    #     return df
+        
         
     def _set_forest_classes(self):
         """Collect all class labels from individual trees and mark the forest as fitted."""
