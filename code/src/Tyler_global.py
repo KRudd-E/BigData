@@ -12,6 +12,7 @@ class GlobalModelManager:
     def __init__(self):
         self.num_exemplars = 3
         self.num_partitions = 2
+        self.distance_types = ['dtw', 'euclidean'] 
 
     def train(self, df: DataFrame) -> ProximityForest:
         rdd = self.partition_data(df) #changed naming of this to match function name 
@@ -43,8 +44,13 @@ class GlobalModelManager:
             return iter([{**row, "exemplars": exemplars} for row in partition_data])
         return choose_exemplars
     
-
-    
+    def choose_distance_function(self, distance_types):
+        distance_types = []
+        for i in range(self.num_partitions):
+            distance_types.append(sample(self.distance_types, 1)[0])
+        return distance_types
+            
+           
     def assign_closest_exemplar(self, iterator):
         partition_data = list(iterator)
 
