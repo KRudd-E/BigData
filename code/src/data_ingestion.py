@@ -40,7 +40,8 @@ class DataIngestion:
         
         data_percentage = self.config.get("data_percentage", 1.0)
         
-        print(f"Data Path is {data_path} and loading {data_percentage*100}% of data ++++++++++++++++++++++")
+        print(f"Data Path: {data_path}")
+        print(f"Loading {data_percentage*100}% of data")
         columns = [f"_c{i}" for i in range(1, 141)]
         
         # Create the schema correctly
@@ -58,7 +59,7 @@ class DataIngestion:
         )
         
         df = df.sample(fraction=data_percentage)     
-        print(f"\nData size is :{df.count()}\n")
+        print(f"Data size: {df.count()}\n")
         self.validate_data(df)  # Check if data is valid.
         return df
     
@@ -69,6 +70,6 @@ class DataIngestion:
         if len(df.take(1)) == 0:
             raise Exception("Data is empty!")
 
-    def get_sample_data(self, df, fraction=0.1):
+    def get_sample_data(self, df, fraction=0.3):
         """Return a small random sample of the data for testing."""
         return df.sample(fraction=fraction)

@@ -38,25 +38,11 @@ class LocalModelManager:
               - tree_params: Extra parameters for the Proximity Tree  model.
         """       
         # Set default configuration
-        self.config = {
-            "num_partitions": 10,  
-            "tree_params": {
-                "n_splitters": 5,  # Matches ProximityTree default
-                "max_depth": None,  
-                "min_samples_split": 2,  # From ProximityTree default
-                "random_state": 123
-                },
-            "forest_params": {
-                "random_state": 123,
-                "n_jobs": -1  # Use all available cores
-                }
-            }
-                    
-        # Update with user-provided config
-        self.config.update(config or {})
+        self.config = config
         
         # List to store trained trees
         self.trees = []
+        
         # Final ensemble model
         self.ensemble = None
         
@@ -66,90 +52,33 @@ class LocalModelManager:
         self.logger.setLevel(logging.INFO)
         
 
-    def train_ensemble(self, df: DataFrame) -> ProximityForest:
-        
-        """
-             Train a forest model iin 3 steps:
-        1. Prepare data partitions
-        2. Train trees on each partition
-        3. Combine trees into a forest
-        
-        """
-        # Repartition the data if our config says so
-        df = self._repartition_data_Balanced(df)
-        
-        tree_params = self.config["tree_params"]      
-        
-         # Define how to process each partition - inline function
-        def process_partition(partition_data):
-            """Process one data partition to train a tree."""
-            try:
-                # Convert Spark rows to pandas DataFrame
-                pandas_df = pd.DataFrame([row.asDict() for row in partition_data])
-                if pandas_df.empty:
-                    return []
-                
-                # Prepare features (3D format for AEON) and labes
-                X = np.ascontiguousarray(pandas_df.drop("label", axis=1).values)
-                X_3d = X.reshape((X.shape[0], 1, X.shape[1]))  # (samples, 1, features)
-                y = pandas_df["label"].values
-                
-                # Train one tree
-                tree = ProximityTree(**tree_params)
-                tree.fit(X_3d, y)
-                
-                # Return serialized tree
-                return [pickle.dumps(tree)]
-            
-            except Exception as e:
-                print(f"Failed to train tree on partition: {str(e)}")
-                return []  # Skip failed partitions
-            
-        # Run training on all partitions
-        trees_rdd = df.rdd.mapPartitions(process_partition)
-        serialized_trees = trees_rdd.collect()
-        self.trees = [pickle.loads(b) for b in serialized_trees if b is not None]
-
-        # Build the forest
-        if self.trees:
-            self.ensemble = ProximityForest(
-                n_trees=len(self.trees),
-                **self.config["forest_params"]
-            )
-            # Manually set forest properties
-            self.ensemble.trees_ = self.trees
-            self._set_forest_classes() 
-            return self.ensemble
-        else:
-            print("Warning: No trees were trained!")
-            return None
-   
-    def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
-        if "num_partitions" in self.config:
-            new_parts = self.config["num_partitions"]  # ✅ Get value first
-            self.logger.info(f"Repartitioning data to {new_parts} parts")
-            return df.repartition(new_parts)
-        return df
+    # def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
+    #     if "num_partitions" in self.config:
+    #         new_parts = self.config["num_partitions"]  # ✅ Get value first
+    #         self.logger.info(f"Repartitioning data to {new_parts} parts")
+    #         return df.repartition(new_parts)
+    #     return df
     
-    def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
-        if "num_partitions" in self.config and "label_col" in self.config:
-            num_parts = self.config["num_partitions"]
-            label_col = self.config["label_col"]
-            self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
+    # def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
+    #     if "num_partitions" in self.config and "label_col" in self.config:
+    #         num_parts = self.config["num_partitions"]
+    #         label_col = self.config["label_col"]
+    #         self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
             
-            # Assign partition IDs (0 to num_parts-1 per class)
-            # Subtracting 1 so that modulo is computed from 0
-            window = Window.partitionBy(label_col).orderBy(F.rand())
-            df = df.withColumn("_partition_id", ((F.row_number().over(window) - 1) % num_parts).cast("int"))
+    #         # Assign partition IDs (0 to num_parts-1 per class)
+    #         # Subtracting 1 so that modulo is computed from 0
+    #         window = Window.partitionBy(label_col).orderBy(F.rand())
+    #         df = df.withColumn("_partition_id", ((F.row_number().over(window) - 1) % num_parts).cast("int"))
             
-            # Force exact number of partitions using partition_id
-            df = df.repartition(num_parts, F.col("_partition_id"))
+    #         # Force exact number of partitions using partition_id
+    #         df = df.repartition(num_parts, F.col("_partition_id"))
             
-            # For production, drop the helper column.
-            if not preserve_partition_id:
-                df = df.drop("_partition_id")
-            return df
-        return df
+    #         # For production, drop the helper column.
+    #         if not preserve_partition_id:
+    #             df = df.drop("_partition_id")
+    #         return df
+    #     return df
+        
         
     def _set_forest_classes(self):
         """Collect all class labels from individual trees and mark the forest as fitted."""
@@ -228,6 +157,64 @@ class LocalModelManager:
                     self._print_tree_node_info(child_node, depth + 1)
 
    
+   
+    def train_ensemble(self, df: DataFrame) -> ProximityForest:
+        
+        """
+             Train a forest model iin 3 steps:
+        1. Prepare data partitions
+        2. Train trees on each partition
+        3. Combine trees into a forest
+        
+        """
+        # Repartition the data if our config says so
+        #df = self._repartition_data_Balanced(df) - already partitioned!
+        
+        tree_params = self.config["tree_params"]      
+        
+         # Define how to process each partition - inline function
+        def process_partition(partition_data):
+            """Process one data partition to train a tree."""
+            try:
+                # Convert Spark rows to pandas DataFrame
+                pandas_df = pd.DataFrame([row.asDict() for row in partition_data])
+                if pandas_df.empty:
+                    return []
+                
+                # Prepare features (3D format for AEON) and labes
+                X = np.ascontiguousarray(pandas_df.drop("label", axis=1).values)
+                X_3d = X.reshape((X.shape[0], 1, X.shape[1]))  # (samples, 1, features)
+                y = pandas_df["label"].values
+                
+                # Train one tree
+                tree = ProximityTree(**tree_params)
+                tree.fit(X_3d, y)
+                
+                # Return serialized tree
+                return [pickle.dumps(tree)]
+            
+            except Exception as e:
+                print(f"Failed to train tree on partition: {str(e)}")
+                return []  # Skip failed partitions
+            
+        # Run training on all partitions
+        trees_rdd = df.rdd.mapPartitions(process_partition)
+        serialized_trees = trees_rdd.collect()
+        self.trees = [pickle.loads(b) for b in serialized_trees if b is not None]
+
+        # Build the forest
+        if self.trees:
+            self.ensemble = ProximityForest(
+                n_trees=len(self.trees),
+                **self.config["forest_params"]
+            )
+            # Manually set forest properties
+            self.ensemble.trees_ = self.trees
+            self._set_forest_classes() 
+            return self.ensemble
+        else:
+            print("Warning: No trees were trained!")
+            return None
     
 # ==================================================== TESTING ====================================================
 # This is a test script to validate the functionality of the LocalModelManager class.
