@@ -12,7 +12,7 @@ class GlobalModelManager:
     def __init__(self):
         self.num_exemplars = 3
         self.num_partitions = 2
-        self.distance_types = ['dtw', 'euclidean'] 
+        self.distance_types = ['dtw', 'euclidean'] #add more types to this as they are created in distance_measures.py
 
     def train(self, df: DataFrame) -> ProximityForest:
         rdd = self.partition_data(df) #changed naming of this to match function name 
@@ -20,7 +20,7 @@ class GlobalModelManager:
         choose_exemplars = self.choose_exemplars_function(self.num_exemplars)
         rdd_with_exemplar_column = rdd.mapPartitions(choose_exemplars)
 
-        rdd_with_dtw = rdd_with_exemplar_column.mapPartitions(self.calc_dtw_distance)
+        rdd_with_dtw = rdd_with_exemplar_column.mapPartitions(self.calc_distance)
 
         rdd_with_closest_exemplar = rdd_with_dtw.mapPartitions(self.assign_closest_exemplar)
 
@@ -45,10 +45,20 @@ class GlobalModelManager:
         return choose_exemplars
     
     def choose_distance_function(self, distance_types):
-        distance_types = []
-        for i in range(self.num_partitions):
-            distance_types.append(sample(self.distance_types, 1)[0])
-        return distance_types
+        samples = np.random.choice(distance_types, size=self.num_partitions, replace=True) 
+        return samples
+    
+    def calc_distance(self, iterator):
+        partition_data = list(iterator)
+        distance_types = self.choose_distance_function(self.distance_types)
+
+        for row, distance_type in zip(partition_data, distance_types):
+            if distance_type == 'dtw':
+                row['distance'] = calc_dtw_distance(row['time_series'], row['exemplars'])
+            elif distance_type == 'euclidean':
+                row['distance'] = calc_euclid_distance(row['time_series'], row['exemplars'])
+            # Add more distance types as needed
+        return iter(partition_data)
             
            
     def assign_closest_exemplar(self, iterator):
