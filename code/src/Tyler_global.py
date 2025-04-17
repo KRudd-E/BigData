@@ -6,6 +6,7 @@ from aeon.classification.distance_based import ProximityTree, ProximityForest
 import logging
 from random import sample
 from dtaidistance import dtw
+from distance_measures import calc_dtw_distance, calc_euclid_distance
 
 class GlobalModelManager:
     def __init__(self):
@@ -42,31 +43,14 @@ class GlobalModelManager:
             return iter([{**row, "exemplars": exemplars} for row in partition_data])
         return choose_exemplars
     
-    def calc_dtw_distance(self, iterator):
-        partition_data = list(iterator)
-        updated_rows = []
-        
-        for row in partition_data:
-            time_series = row['time_series']
-            exemplars = row['exemplars']
-            
-            dtw_distances = [dtw.distance(time_series, exemplar) for exemplar in exemplars]
-            
-            updated_row = {**row}
 
-            for i, dtw_distance in enumerate(dtw_distances):
-                updated_row[f"dtw_distance_exemplar_{i+1}"] = dtw_distance
-            
-            updated_rows.append(updated_row)
-        
-        return iter(updated_rows)
     
     def assign_closest_exemplar(self, iterator):
         partition_data = list(iterator)
 
         for row in partition_data:
             # Check if there are DTW distances for exemplars
-            exemplar_distances = {key: value for key, value in row.items() if key.startswith("dtw_distance_exemplar_")}
+            exemplar_distances = {key: value for key, value in row.items() if key.startswith("exemplar_")} #changed to name in distance_measures.py
             
             if exemplar_distances:
                 # Find the exemplar with the smallest DTW distance

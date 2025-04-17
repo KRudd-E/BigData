@@ -25,7 +25,26 @@ def calc_dtw_distance(iterator):
             updated_row = {**row}
 
             for i, dtw_distance in enumerate(dtw_distances):
-                updated_row[f"dtw_distance_exemplar_{i+1}"] = dtw_distance
+                updated_row[f"exemplar_{i+1}"] = dtw_distance
+            
+            updated_rows.append(updated_row)
+        
+        return iter(updated_rows)
+    
+def calc_euclid_distance(iterator):
+        partition_data = list(iterator)
+        updated_rows = []
+        
+        for row in partition_data:
+            time_series = row['time_series']
+            exemplars = row['exemplars']
+            
+            dtw_distances = [dtw.distance(time_series, exemplar,only_ub=True) for exemplar in exemplars]
+            
+            updated_row = {**row}
+
+            for i, dtw_distance in enumerate(dtw_distances):
+                updated_row[f"exemplar_{i+1}"] = dtw_distance
             
             updated_rows.append(updated_row)
         
@@ -52,5 +71,7 @@ dummy_partition = iter([
         ]
     }
 ])
-
-print(list(calc_dtw_distance(dummy_partition)))
+#print('dtw_dist:')
+#print(list(calc_dtw_distance(dummy_partition)))
+print('euclid_dist:')
+print(list(calc_euclid_distance(dummy_partition))) #for some reason wont calculate this if has already calculated dtw dist
