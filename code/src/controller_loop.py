@@ -63,7 +63,12 @@ class PipelineController_Loop:
             print("Current working directory (project root):", os.getcwd())
 
     def run(self):
-        for i in range(2,4): #! iteration count
+        if self.config["local_model_config"]["test_local_model"] is True:
+            number_iterations = self.config["local_model_config"]["num_partitions"]
+        else:
+            number_iterations = self.config["global_model_config"]["num_partitions"]
+
+        for i in range(self.config["min_number_iterarations"],number_iterations): #! iterations count
             """
             Run the whole pipeline:
             - Setup Spark session.
