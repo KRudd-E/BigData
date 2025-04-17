@@ -14,7 +14,10 @@ config = {
     "local_data_path": "/fulldataset_ECG5000.csv",
     "label_col": "label",
     "data_percentage": 1.0,
+    "min_number_iterarations": 2,
+
     "local_model_config": {
+        "test_local_model" : True,
         "num_partitions": 10,  
         "tree_params": {
             "n_splitters": 5,  # Matches ProximityTree default
@@ -28,6 +31,7 @@ config = {
             }
     },
     "global_model_config": {
+        "test_local_model" : False,
         "num_partitions": 10
     }
 }
