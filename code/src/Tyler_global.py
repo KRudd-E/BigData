@@ -20,9 +20,9 @@ class GlobalModelManager:
         choose_exemplars = self.choose_exemplars_function(self.num_exemplars)
         rdd_with_exemplar_column = rdd.mapPartitions(choose_exemplars)
 
-        rdd_with_dtw = rdd_with_exemplar_column.mapPartitions(self.calc_distance)
+        rdd_with_distance = rdd_with_exemplar_column.mapPartitions(self.calc_distance)
 
-        rdd_with_closest_exemplar = rdd_with_dtw.mapPartitions(self.assign_closest_exemplar)
+        rdd_with_closest_exemplar = rdd_with_distance.mapPartitions(self.assign_closest_exemplar)
 
         rdd_with_gini = rdd_with_closest_exemplar.mapPartitions(self.calculate_partition_gini) # gini impurity before splitting
 
@@ -142,3 +142,38 @@ class GlobalModelManager:
         
         # Return the results as an iterator
         return iter(results)
+    
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.master("local[*]").appName("GenericRDD").getOrCreate()
+
+# Access the SparkContext
+sc = spark.sparkContext
+   
+tsdata = [
+    {'label': 1, 'time_series': [1.2, 2.4, 3.6, 4.8, 6.0]},
+    {'label': 1, 'time_series': [1.0, 1.8, 2.6, 3.4, 4.2]},
+    {'label': 1, 'time_series': [0.9, 1.8, 2.7, 3.6, 4.5]},
+    {'label': 1, 'time_series': [1.5, 2.1, 2.7, 3.3, 3.9]},
+    {'label': 1, 'time_series': [0.8, 1.7, 2.5, 3.2, 4.0]},
+    {'label': 2, 'time_series': [2.1, 3.3, 4.5, 5.7, 6.9]},
+    {'label': 2, 'time_series': [3.0, 3.8, 4.6, 5.4, 6.2]},
+    {'label': 2, 'time_series': [3.3, 4.1, 4.9, 5.7, 6.5]},
+    {'label': 3, 'time_series': [0.5, 1.5, 2.5, 3.5, 4.5]},
+    {'label': 3, 'time_series': [2.0, 2.5, 3.0, 3.5, 4.0]},
+    {'label': 4, 'time_series': [5.5, 6.6, 7.7, 8.8, 9.9]},
+    {'label': 4, 'time_series': [6.1, 6.2, 6.3, 6.4, 6.5]},
+    {'label': 1, 'time_series': [0.7, 1.3, 1.9, 2.5, 3.1]},
+    {'label': 1, 'time_series': [1.1, 2.1, 3.1, 4.1, 5.1]},
+    {'label': 1, 'time_series': [0.6, 1.2, 1.8, 2.4, 3.0]},
+    {'label': 2, 'time_series': [2.4, 3.5, 4.6, 5.7, 6.8]},
+    {'label': 2, 'time_series': [1.9, 2.8, 3.7, 4.6, 5.5]},
+    {'label': 3, 'time_series': [1.0, 1.8, 2.6, 3.4, 4.2]},
+    {'label': 4, 'time_series': [6.0, 7.0, 8.0, 9.0, 10.0]},
+    {'label': 1, 'time_series': [1.3, 2.3, 3.3, 4.3, 5.3]}
+]
+
+df = spark.createDataFrame(tsdata)
+
+global_model = GlobalModelManager()
+global_model.train(df)
