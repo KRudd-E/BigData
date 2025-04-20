@@ -132,9 +132,9 @@ class Preprocessor:
          3. Normalize the feature columns.
         """
         
-        df = self.handle_missing_values(df)
         min_max = self.compute_min_max(df) #for normalization
         df = self._repartition_data_Balanced(df)
+        df = self.handle_missing_values(df)
         df = self.normalize(df, min_max)
         
         # You can add more feature engineering here if needed.

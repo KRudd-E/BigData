@@ -13,6 +13,7 @@ dependencies:
   - sktime
   - aeon
   - pip             # so pip installs in this env
+  - ca-certificates
   - pip:
       - tensorflow==2.12.0
       - wildboar
