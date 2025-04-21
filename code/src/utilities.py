@@ -74,3 +74,22 @@ def randomSplit_stratified_via_sampleBy(df, label_col, weights=[0.8, 0.2], seed=
     test_df  = df.join(train_df, on=df.columns, how="left_anti")
 
     return train_df, test_df    
+
+def compute_min_max(df: DataFrame) -> dict:
+        """
+        Computes the min and max for each feature column (excluding 'label').
+        """
+        feature_cols = [col for col in df.columns if (col != "label" and col != "_partition_id")]
+        
+        agg_exprs = []
+        for col in feature_cols:
+            agg_exprs.append(F.min(col).alias(f"min_{col}"))
+            agg_exprs.append(F.max(col).alias(f"max_{col}"))
+        
+        stats_row = df.agg(*agg_exprs).first()
+        
+        min_max = {
+            col: (stats_row[f"min_{col}"], stats_row[f"max_{col}"])
+            for col in feature_cols
+        }
+        return min_max  
