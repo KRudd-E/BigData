@@ -3,7 +3,7 @@ from config import config
 
 
 if __name__ == "__main__":
-    print("Starting pipeline via controller.py")
+    print("Starting pipeline via controller")
     config = config
     controller = PipelineController_Loop(config)
     controller.run()
