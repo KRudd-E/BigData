@@ -36,6 +36,7 @@ def show_compact(df, num_rows=5, num_cols=3):
 def randomSplit_dist(df: DataFrame, weights=[0.8, 0.2], seed=123) -> tuple:
     """
     Splits a Spark DataFrame into train/test sets based on partition-respecting random assignment.
+    -> class imbalances
     """
     assert abs(sum(weights) - 1.0) < 1e-6 #Weights must sum to 1.0
 
@@ -47,4 +48,29 @@ def randomSplit_dist(df: DataFrame, weights=[0.8, 0.2], seed=123) -> tuple:
     test_df = df_with_rand.filter(F.col("_rand") > weights[0]).drop("_rand")
 
     return train_df, test_df
+
+def randomSplit_stratified_via_sampleBy(df, label_col, weights=[0.8, 0.2], seed=123):
     
+    """
+    Splits a Spark DataFrame into train/test sets based on partition-Preserves per‑class proportions
+
+    """
+    
+    assert abs(sum(weights) - 1.0) < 1e-6 # ensure that our weights must sum to 1.0
+    train_frac = weights[0]
+
+    # figure out all the distinct label values 
+    labels = [row[label_col] for row in df.select(label_col) 
+                                            .distinct()  # build a tiny DataFrame of unique labels
+                                            .collect() # brings the list to the driver
+                                            ]
+
+    # build a dict: each label -> same fraction
+    fractions = {dict_lbl: train_frac for dict_lbl in labels}
+
+    # sample train set: Use Spark’s native stratified sampler
+    train_df = df.stat.sampleBy(label_col, fractions, seed)
+    # everything else is test
+    test_df  = df.join(train_df, on=df.columns, how="left_anti")
+
+    return train_df, test_df    
