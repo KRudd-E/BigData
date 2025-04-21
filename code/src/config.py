@@ -33,5 +33,6 @@ config = {
     "global_model_config": {
         "test_global_model" : False,
         "num_partitions": 10
-    }
+    },
+    "reserve_partition_id": False
 }

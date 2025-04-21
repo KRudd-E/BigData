@@ -94,10 +94,9 @@ class Preprocessor:
          2. Repartition the data : shuffle the data to balance the partitions.
          3. Normalize the feature columns.
         """
-        df = self.handle_missing_values(df)
-        reserve_partition_id = True
-        df = self._repartition_data_Balanced(df, preserve_partition_id = reserve_partition_id) # data is  redistributed across partitions -> 2 shuffle
-        df = self.normalize(df, min_max, preserve_partition_id = reserve_partition_id)   # data is normalised on partitions -> no shuffle
+        df = self.handle_missing_values(df)        
+        df = self._repartition_data_Balanced(df, preserve_partition_id = self.config["reserve_partition_id"]) # data is  redistributed across partitions -> 2 shuffle
+        df = self.normalize(df, min_max, preserve_partition_id = self.config["reserve_partition_id"])   # data is normalised on partitions -> no shuffle
         
         # You can add more feature engineering here if needed.
         return df
