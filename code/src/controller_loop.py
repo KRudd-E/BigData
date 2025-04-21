@@ -17,8 +17,9 @@ from preprocessing import Preprocessor
 from local_model_manager import LocalModelManager
 from prediction_manager import PredictionManager
 from evaluation import Evaluator
-from utilities import show_compact, randomSplit_dist
+from utilities import show_compact, randomSplit_dist, randomSplit_stratified_via_sampleBy
 from visualization import plot_confusion_matrix, plot_class_metrics
+import logging
 
 class PipelineController_Loop:
     def __init__(self, config):
@@ -33,6 +34,11 @@ class PipelineController_Loop:
         self.model_manager = None
         self.predictor = None
         self.evaluator = None
+        
+        # Set up a logger so we can see whats going on
+        self.logger = logging.getLogger(__name__)
+        self.logger.addHandler(logging.StreamHandler())
+        self.logger.setLevel(logging.INFO)
 
     def _setup_spark(self):
         """
@@ -68,7 +74,7 @@ class PipelineController_Loop:
         else:
             number_iterations = self.config["global_model_config"]["num_partitions"]
 
-        for i in range(self.config["min_number_iterarations"],number_iterations): #! iterations count
+        for i in range(self.config["min_number_iterarations"], number_iterations + 1 ): #! iterations count from min to num_partitions inclusive.
             """
             Run the whole pipeline:
             - Setup Spark session.
@@ -78,7 +84,13 @@ class PipelineController_Loop:
             - Generate predictions.
             - Evaluate the results.
             """
-            self.config["local_model_config"]["num_partitions"] = i #! iterates over num partitions. 
+            if self.config["local_model_config"]["test_local_model"] is True:
+                self.config["local_model_config"]["num_partitions"] = i #! iterates over num partitions for global model. 
+                self.logger.info(f"\n\nRunning local model with {i} partitions")
+                
+            if self.config["global_model_config"]["test_global_model"] is True:
+                self.config["global_model_config"]["num_partitions"] = i #! iterates over num partitions for global model.
+                self.logger.info(f"\n\nRunning global model with {i} partitions")
             
             self._setup_spark()
             
@@ -95,24 +107,27 @@ class PipelineController_Loop:
             df = self.ingestion.load_data()
             self.evaluator.record_time("Ingestion")
 
-            # Preprocessing
-            self.evaluator.start_timer("Preprocessing")
-            preprocessed_df = self.preprocessor.run_preprocessing(df)
-            self.evaluator.record_time("Preprocessing")
-
-            #print("\nSample of preprocessed data:")
-            #show_compact(preprocessed_df, num_rows=5, num_cols=3)
             
-            train_df, test_df = randomSplit_dist(preprocessed_df, weights=[0.8, 0.2], seed=123)
+            # Preprocessing train data
+            self.evaluator.start_timer("Preprocessing data")
+            preprocessed_df = self.preprocessor.run_preprocessing(df)
+            self.evaluator.record_time("Preprocessing data")
+
+            # print("\nSample of preprocessed data:")
+            # show_compact(preprocessed_df, num_rows=5, num_cols=3) 
+            
+            train_df, test_df = randomSplit_stratified_via_sampleBy(df, label_col = "label", weights=[0.8, 0.2], seed=123)
+            
+            #train_df, test_df = randomSplit_dist(preprocessed_df,  weights=[0.8, 0.2], seed=123)          
 
             # Training local models
             self.evaluator.start_timer("Training")
-            ensemble = self.model_manager.train_ensemble(train_df)
+            local_ensemble = self.model_manager.train_ensemble(train_df)
             self.evaluator.record_time("Training")
 
             # Prediction
             self.evaluator.start_timer("Prediction")
-            self.predictor = PredictionManager(self.spark, ensemble)
+            self.predictor = PredictionManager(self.spark, local_ensemble)
             predictions_df = self.predictor.generate_predictions(test_df)  
             self.evaluator.record_time("Prediction")
             
@@ -120,7 +135,7 @@ class PipelineController_Loop:
             predictions_df.groupBy("prediction").count().show() #! returns to driver
 
             # Evaluation
-            report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=ensemble)
+            report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=local_ensemble)
             
             # # Plot confusion matrix with proper labels
             # if "confusion_matrix" in report:
