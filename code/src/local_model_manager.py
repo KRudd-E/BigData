@@ -139,8 +139,6 @@ class LocalModelManager:
         3. Combine trees into a forest
         
         """
-        # Repartition the data if our config says so
-        #df = self._repartition_data_Balanced(df) - already partitioned!
         
         tree_params = self.config["tree_params"]      
         
@@ -187,33 +185,7 @@ class LocalModelManager:
         else:
             print("Warning: No trees were trained!")
             return None
-    
-    # def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
-    #     if "num_partitions" in self.config:
-    #         new_parts = self.config["num_partitions"]  # ✅ Get value first
-    #         self.logger.info(f"Repartitioning data to {new_parts} parts")
-    #         return df.repartition(new_parts)
-    #     return df
-    
-    # def _repartition_data_Balanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
-    #     if "num_partitions" in self.config and "label_col" in self.config:
-    #         num_parts = self.config["num_partitions"]
-    #         label_col = self.config["label_col"]
-    #         self.logger.info(f"Stratified repartitioning into {num_parts} partitions")
-            
-    #         # Assign partition IDs (0 to num_parts-1 per class)
-    #         # Subtracting 1 so that modulo is computed from 0
-    #         window = Window.partitionBy(label_col).orderBy(F.rand())
-    #         df = df.withColumn("_partition_id", ((F.row_number().over(window) - 1) % num_parts).cast("int"))
-            
-    #         # Force exact number of partitions using partition_id
-    #         df = df.repartition(num_parts, F.col("_partition_id"))
-            
-    #         # For production, drop the helper column.
-    #         if not preserve_partition_id:
-    #             df = df.drop("_partition_id")
-    #         return df
-    #     return df
+
         
         
 # ==================================================== TESTING ====================================================
