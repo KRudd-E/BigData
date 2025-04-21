@@ -69,9 +69,9 @@ def randomSplit_stratified_via_sampleBy(df, label_col, weights=[0.8, 0.2], seed=
     fractions = {dict_lbl: train_frac for dict_lbl in labels}
 
     # sample train set: Use Spark’s native stratified sampler
-    train_df = df.stat.sampleBy(label_col, fractions, seed)
+    train_df = df.stat.sampleBy(label_col, fractions, seed) # map‑side sampling per key, jno shuffle
     # everything else is test
-    test_df  = df.join(train_df, on=df.columns, how="left_anti")
+    test_df  = df.join(train_df, on=df.columns, how="left_anti") # one shuffles to get the rest of the data
 
     return train_df, test_df    
 
