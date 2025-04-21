@@ -18,7 +18,7 @@ config = {
 
     "local_model_config": {
         "test_local_model" : True,
-        "num_partitions": 10,  
+        "num_partitions": 2,  
         "tree_params": {
             "n_splitters": 5,  # Matches ProximityTree default
             "max_depth": None,  
@@ -31,7 +31,7 @@ config = {
             }
     },
     "global_model_config": {
-        "test_local_model" : False,
+        "test_global_model" : False,
         "num_partitions": 10
     }
 }
