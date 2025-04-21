@@ -17,7 +17,7 @@ from preprocessing import Preprocessor
 from local_model_manager import LocalModelManager
 from prediction_manager import PredictionManager
 from evaluation import Evaluator
-from utilities import show_compact, randomSplit_dist, randomSplit_stratified_via_sampleBy
+from utilities import show_compact, randomSplit_dist, randomSplit_stratified_via_sampleBy, compute_min_max
 from visualization import plot_confusion_matrix, plot_class_metrics
 import logging
 
@@ -107,28 +107,34 @@ class PipelineController_Loop:
             df = self.ingestion.load_data()
             self.evaluator.record_time("Ingestion")
 
+            #  Split data first - does one shuffle of the data
+            min_max = compute_min_max(df) # we should save this as artefact for later use.
+            train_df, test_df = randomSplit_stratified_via_sampleBy(df, label_col = "label", weights=[0.8, 0.2], seed=123)
+            #train_df, test_df = randomSplit_dist(preprocessed_df,  weights=[0.8, 0.2], seed=123)          
             
             # Preprocessing train data
-            self.evaluator.start_timer("Preprocessing data")
-            preprocessed_df = self.preprocessor.run_preprocessing(df)
-            self.evaluator.record_time("Preprocessing data")
+            self.evaluator.start_timer("Preprocessing train data")
+            preprocessed_train_df = self.preprocessor.run_preprocessing(train_df, min_max) # does two shuffles of the 80% of data 
+            self.evaluator.record_time("Preprocessing train data")
 
             # print("\nSample of preprocessed data:")
-            # show_compact(preprocessed_df, num_rows=5, num_cols=3) 
+            # show_compact(preprocessed_train_df, num_rows=5, num_cols=3)                   
             
-            train_df, test_df = randomSplit_stratified_via_sampleBy(df, label_col = "label", weights=[0.8, 0.2], seed=123)
-            
-            #train_df, test_df = randomSplit_dist(preprocessed_df,  weights=[0.8, 0.2], seed=123)          
-
             # Training local models
             self.evaluator.start_timer("Training")
-            local_ensemble = self.model_manager.train_ensemble(train_df)
+            local_ensemble = self.model_manager.train_ensemble(preprocessed_train_df)
             self.evaluator.record_time("Training")
+            
+            
+            # Preprocessing test data
+            self.evaluator.start_timer("Preprocessing test data")
+            preprocessed_test_df = self.preprocessor.run_preprocessing(test_df, min_max) # does two shuffles of the rest of 20% of data 
+            self.evaluator.record_time("Preprocessing test data")
 
             # Prediction
             self.evaluator.start_timer("Prediction")
             self.predictor = PredictionManager(self.spark, local_ensemble)
-            predictions_df = self.predictor.generate_predictions(test_df)  
+            predictions_df = self.predictor.generate_predictions(preprocessed_test_df)  
             self.evaluator.record_time("Prediction")
             
             print("\nPredictions:")

@@ -24,25 +24,6 @@ class Preprocessor:
     def handle_missing_values(self, df: DataFrame) -> DataFrame:
         """ Drops rows where every column is null """
         return df.dropna(how="all")
-
-    def compute_min_max(self, df: DataFrame) -> dict:
-        """
-        Computes the min and max for each feature column (excluding 'label').
-        """
-        feature_cols = [col for col in df.columns if (col != "label" and col != "_partition_id")]
-        
-        agg_exprs = []
-        for col in feature_cols:
-            agg_exprs.append(F.min(col).alias(f"min_{col}"))
-            agg_exprs.append(F.max(col).alias(f"max_{col}"))
-        
-        stats_row = df.agg(*agg_exprs).first()
-        
-        min_max = {
-            col: (stats_row[f"min_{col}"], stats_row[f"max_{col}"])
-            for col in feature_cols
-        }
-        return min_max  
    
     
     def normalize(self, df: DataFrame, min_max: dict, preserve_partition_id: bool = False) -> DataFrame:
@@ -86,12 +67,12 @@ class Preprocessor:
             # Assign partition IDs (0 to num_parts-1 per class)
             # Subtracting 1 so that modulo is computed from 0
             window = Window.partitionBy(label_col) \
-                            .orderBy(F.rand())
+                            .orderBy(F.rand())          #  one shuffles to group all rows of each label together so we can number them
                             
             df = df.withColumn("_partition_id", ((F.row_number().over(window) - 1) % num_parts).cast("int"))
             
             # Force exact number of partitions using partition_id
-            df = df.repartition(num_parts, F.col("_partition_id"))
+            df = df.repartition(num_parts, F.col("_partition_id"))          # one shuffles to repartition by _partition_id to ensure we have num_parts partitions
             print(f'Repartitioning to <<<< {num_parts} >>>> workers - partitions.')
             
             if not preserve_partition_id:
@@ -100,7 +81,7 @@ class Preprocessor:
             
         return df
 
-    def run_preprocessing(self, df: DataFrame) -> DataFrame:
+    def run_preprocessing(self, df: DataFrame, min_max) -> DataFrame:
         """
         Args:
             df (DataFrame): Input DataFrame to be preprocessed. pyspark Sql DataFrame.
@@ -110,15 +91,13 @@ class Preprocessor:
             
         Run all preprocessing steps in order:
          1. Drop rows that are completely null.
-         2. Rename the first column as label.
+         2. Repartition the data : shuffle the data to balance the partitions.
          3. Normalize the feature columns.
         """
-        
-        min_max = self.compute_min_max(df) #for normalization
-        reserve_partition_id = True
-        df = self._repartition_data_Balanced(df, preserve_partition_id = reserve_partition_id)
         df = self.handle_missing_values(df)
-        df = self.normalize(df, min_max, preserve_partition_id = reserve_partition_id)
+        reserve_partition_id = True
+        df = self._repartition_data_Balanced(df, preserve_partition_id = reserve_partition_id) # data is  redistributed across partitions -> 2 shuffle
+        df = self.normalize(df, min_max, preserve_partition_id = reserve_partition_id)   # data is normalised on partitions -> no shuffle
         
         # You can add more feature engineering here if needed.
         return df
