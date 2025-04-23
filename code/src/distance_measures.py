@@ -11,6 +11,7 @@ from random import sample
 from dtaidistance import dtw
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
+from sklearn.metrics.pairwise import cosine_similarity
 
 def calc_dtw_distance(iterator):
         partition_data = list(iterator)
@@ -50,6 +51,42 @@ def calc_euclid_distance(iterator):
         
         return iter(updated_rows)
     
+def manhattan_distance(iterator):
+    partition_data = list(iterator)
+    updated_rows = []
+    
+    for row in partition_data:
+        time_series = row['time_series']
+        exemplars = row['exemplars']
+        
+        distances = [sum(abs(t - e) for t, e in zip(time_series, exemplar)) for exemplar in exemplars]
+        
+        updated_row = {**row}
+        for i, distance in enumerate(distances):
+            updated_row[f"exemplar_{i+1}"] = distance
+        
+        updated_rows.append(updated_row)
+    
+    return iter(updated_rows)
+
+def cosine_distance(iterator):
+    partition_data = list(iterator)
+    updated_rows = []
+    
+    for row in partition_data:
+        time_series = row['time_series']
+        exemplars = row['exemplars']
+        
+        distances = [1 - cosine_similarity([time_series], [exemplar])[0][0] for exemplar in exemplars]
+        
+        updated_row = {**row}
+        for i, distance in enumerate(distances):
+            updated_row[f"exemplar_{i+1}"] = distance
+        
+        updated_rows.append(updated_row)
+    
+    return iter(updated_rows)
+    
   
 dummy_partition = iter([
     {
@@ -72,6 +109,6 @@ dummy_partition = iter([
     }
 ])
 #print('dtw_dist:')
-#print(list(calc_dtw_distance(dummy_partition)))
+print(list(manhattan_distance(dummy_partition)))
 print('euclid_dist:')
 print(list(calc_euclid_distance(dummy_partition))) #for some reason wont calculate this if has already calculated dtw dist
