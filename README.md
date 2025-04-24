@@ -6,11 +6,6 @@ Time-Series Classification
 * Final submission of Report, Code, and contribution statements - 6 May - 9 credits
 * Final presentation - 12 May - 3 credits
 
-# TO-DO
-* Decide on Data source
-* Decide (broadly) the aim of the project / machine learning algorithms to redesign / with consideration of scalability & parallelisability
-* Poster and diagram design
-
 # Crucially
 * A project that designs and implements a well-thought-out distributed solution for a relatively straightforward method/technique will receive a higher mark
 
@@ -64,5 +59,5 @@ spark.stop()
 [Yourpath]
 ```
 
-####  5. Run main.py scripts :
+####  5. Run main.py scripts:
 python code/src/main.py
