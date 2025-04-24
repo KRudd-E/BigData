@@ -70,10 +70,12 @@ class PipelineController_Loop:
             print("Current working directory (project root):", os.getcwd())
 
     def run(self):
-        if self.config["local_model_config"]["test_local_model"] is True:
+        if self.config["model_type"] == "local":
             number_iterations = self.config["local_model_config"]["num_partitions"]
-        else:
+        elif self.config["model_type"] == "global":
             number_iterations = self.config["global_model_config"]["num_partitions"]
+        else:
+            raise ValueError("Invalid model type. Choose 'local' or 'global'.")
 
         for i in range(self.config["min_number_iterarations"], number_iterations + 1 ): #! iterations count from min to num_partitions inclusive.
             """
@@ -106,8 +108,6 @@ class PipelineController_Loop:
                 self.model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
             elif self.config["model_type"] == "global":
                 self.model_manager = GlobalModelManager(config=self.config.get("global_model_config", None))
-            else:  
-                raise ValueError("Invalid model type. Choose 'local' or 'global'.")
 
             # Data Ingestion
             self.evaluator.start_timer("Ingestion")
@@ -169,10 +169,22 @@ class PipelineController_Loop:
             #         class_names=class_names  # Pass to plotting function
             #     )
 
-            # Save report 
-            with open(f"code/src/reports/{i}.json", "w") as f: #! these will overwrite if run again. 
-                json.dump(report, f, indent=2)
-        
+
+
+            # Load existing data if file exists, else create empty dict
+            if os.path.exists("code/src/logs/report.json"):
+                with open("code/src/logs/report.json", "r") as f:
+                    all_reports = json.load(f)
+            else:
+                all_reports = {}
+
+            # Add new report under key i (cast to str for JSON compatibility)
+            all_reports[str(i)] = report
+
+            # Write full dictionary back to file
+            with open("code/src/logs/report.json", "w") as f:
+                json.dump(all_reports, f, indent=2)
+            
             print("\nFinal Report:")
             print(json.dumps(report, indent=2))
 

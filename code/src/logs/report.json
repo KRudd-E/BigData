@@ -1,0 +1,254 @@
+{
+  "2": {
+    "performance": {
+      "accuracy": 0.927723,
+      "error_rate": 0.072277,
+      "precision": 0.912293,
+      "recall": 0.927723,
+      "f1_score": 0.915482
+    },
+    "timing": {
+      "Ingestion_time": 2.172,
+      "Preprocessing train data_time": 0.2904,
+      "Training_time": 14.9335,
+      "Preprocessing test data_time": 0.3055,
+      "Prediction_time": 0.159
+    },
+    "complexity": {
+      "num_trees": 1,
+      "avg_depth": 26.0,
+      "avg_leaves": 377.0,
+      "avg_splits": 300.0
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:50:23"
+    }
+  },
+  "3": {
+    "performance": {
+      "accuracy": 0.927723,
+      "error_rate": 0.072277,
+      "precision": 0.911708,
+      "recall": 0.927723,
+      "f1_score": 0.907244
+    },
+    "timing": {
+      "Ingestion_time": 0.2364,
+      "Preprocessing train data_time": 0.1958,
+      "Training_time": 11.6645,
+      "Preprocessing test data_time": 0.3537,
+      "Prediction_time": 0.2531
+    },
+    "complexity": {
+      "num_trees": 2,
+      "avg_depth": 17.0,
+      "avg_leaves": 210.5,
+      "avg_splits": 157.5
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:51:27"
+    }
+  },
+  "4": {
+    "performance": {
+      "accuracy": 0.925743,
+      "error_rate": 0.074257,
+      "precision": 0.908712,
+      "recall": 0.925743,
+      "f1_score": 0.909123
+    },
+    "timing": {
+      "Ingestion_time": 0.1945,
+      "Preprocessing train data_time": 0.2328,
+      "Training_time": 10.954,
+      "Preprocessing test data_time": 0.3675,
+      "Prediction_time": 0.1244
+    },
+    "complexity": {
+      "num_trees": 2,
+      "avg_depth": 20.5,
+      "avg_leaves": 201.5,
+      "avg_splits": 150.5
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:52:37"
+    }
+  },
+  "5": {
+    "performance": {
+      "accuracy": 0.934653,
+      "error_rate": 0.065347,
+      "precision": 0.928685,
+      "recall": 0.934653,
+      "f1_score": 0.918141
+    },
+    "timing": {
+      "Ingestion_time": 0.2783,
+      "Preprocessing train data_time": 0.2177,
+      "Training_time": 8.437,
+      "Preprocessing test data_time": 0.4258,
+      "Prediction_time": 0.1839
+    },
+    "complexity": {
+      "num_trees": 4,
+      "avg_depth": 18.5,
+      "avg_leaves": 113.0,
+      "avg_splits": 80.25
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:53:20"
+    }
+  },
+  "6": {
+    "performance": {
+      "accuracy": 0.930693,
+      "error_rate": 0.069307,
+      "precision": 0.915237,
+      "recall": 0.930693,
+      "f1_score": 0.912611
+    },
+    "timing": {
+      "Ingestion_time": 0.1495,
+      "Preprocessing train data_time": 0.2125,
+      "Training_time": 7.5715,
+      "Preprocessing test data_time": 0.4057,
+      "Prediction_time": 0.2873
+    },
+    "complexity": {
+      "num_trees": 3,
+      "avg_depth": 19.0,
+      "avg_leaves": 146.0,
+      "avg_splits": 111.66666667
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:54:09"
+    }
+  },
+  "7": {
+    "performance": {
+      "accuracy": 0.930693,
+      "error_rate": 0.069307,
+      "precision": 0.925362,
+      "recall": 0.930693,
+      "f1_score": 0.910828
+    },
+    "timing": {
+      "Ingestion_time": 0.1196,
+      "Preprocessing train data_time": 0.2285,
+      "Training_time": 6.2576,
+      "Preprocessing test data_time": 0.3504,
+      "Prediction_time": 0.1441
+    },
+    "complexity": {
+      "num_trees": 4,
+      "avg_depth": 15.75,
+      "avg_leaves": 101.0,
+      "avg_splits": 71.75
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:54:47"
+    }
+  },
+  "8": {
+    "performance": {
+      "accuracy": 0.932673,
+      "error_rate": 0.067327,
+      "precision": 0.922381,
+      "recall": 0.932673,
+      "f1_score": 0.912033
+    },
+    "timing": {
+      "Ingestion_time": 0.1491,
+      "Preprocessing train data_time": 0.2106,
+      "Training_time": 6.6636,
+      "Preprocessing test data_time": 0.3515,
+      "Prediction_time": 0.3141
+    },
+    "complexity": {
+      "num_trees": 5,
+      "avg_depth": 14.0,
+      "avg_leaves": 87.0,
+      "avg_splits": 60.2
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:55:27"
+    }
+  },
+  "9": {
+    "performance": {
+      "accuracy": 0.923762,
+      "error_rate": 0.076238,
+      "precision": 0.907718,
+      "recall": 0.923762,
+      "f1_score": 0.905018
+    },
+    "timing": {
+      "Ingestion_time": 0.1123,
+      "Preprocessing train data_time": 0.2006,
+      "Training_time": 9.7566,
+      "Preprocessing test data_time": 0.317,
+      "Prediction_time": 0.2279
+    },
+    "complexity": {
+      "num_trees": 5,
+      "avg_depth": 12.8,
+      "avg_leaves": 87.4,
+      "avg_splits": 63.2
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:56:24"
+    }
+  },
+  "10": {
+    "performance": {
+      "accuracy": 0.927723,
+      "error_rate": 0.072277,
+      "precision": 0.920734,
+      "recall": 0.927723,
+      "f1_score": 0.903553
+    },
+    "timing": {
+      "Ingestion_time": 0.1457,
+      "Preprocessing train data_time": 0.2249,
+      "Training_time": 6.0803,
+      "Preprocessing test data_time": 0.5979,
+      "Prediction_time": 0.2891
+    },
+    "complexity": {
+      "num_trees": 7,
+      "avg_depth": 12.57142857,
+      "avg_leaves": 66.28571429,
+      "avg_splits": 45.71428571
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-04-24 23:56:55"
+    }
+  }
+}
