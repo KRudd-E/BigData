@@ -10,11 +10,12 @@ Typically, it's created early on, but it can be refined later.
 
 
 config = {
-    "databricks_data_path": "/mnt/2025-team6/fulldataset_ECG5000.csv",
-    "local_data_path": "/fulldataset_ECG5000.csv",
-    "label_col": "label",
-    "data_percentage": 1.0,
-    "min_number_iterarations": 2,
+    "databricks_data_path" : "/mnt/2025-team6/fulldataset_ECG5000.csv",
+    "local_data_path" : "/fulldataset_ECG5000.csv",
+    "label_col" : "label",
+    "data_percentage" : 1.0,
+    "min_number_iterarations" : 2,
+    "model_type" : "local",  # "local" or "global"
 
     "local_model_config": {
         "test_local_model" : True,

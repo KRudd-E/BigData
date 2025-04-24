@@ -15,6 +15,7 @@ from pyspark.sql import SparkSession
 from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
 from local_model_manager import LocalModelManager
+from global_model_manager import GlobalModelManager
 from prediction_manager import PredictionManager
 from evaluation import Evaluator
 from utilities import show_compact, randomSplit_dist, randomSplit_stratified_via_sampleBy, compute_min_max
@@ -99,8 +100,14 @@ class PipelineController_Loop:
             self.evaluator = Evaluator()
             self.ingestion = DataIngestion(spark=self.spark, config=self.ingestion_config)
             self.preprocessor = Preprocessor(config=self.config)
-            self.model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
-            #self.model_manager = GlobalModelManager(config=self.config.get("global_model_config", None))
+            
+            # Model Manager
+            if self.config["model_type"] == "local":
+                self.model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
+            elif self.config["model_type"] == "global":
+                self.model_manager = GlobalModelManager(config=self.config.get("global_model_config", None))
+            else:  
+                raise ValueError("Invalid model type. Choose 'local' or 'global'.")
 
             # Data Ingestion
             self.evaluator.start_timer("Ingestion")

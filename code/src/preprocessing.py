@@ -41,7 +41,11 @@ class Preprocessor:
                 expr = F.lit(0.0)  # if all values identical, set to zero or keep original
             normalized_cols.append(expr.alias(col))
         
-        return df.select(*normalized_cols, "label", "_partition_id")
+        cols_to_select = ["label"]
+        if "_partition_id" in df.columns:
+            cols_to_select.append("_partition_id")
+
+        return df.select(*normalized_cols, *cols_to_select)
 
     def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
         if "num_partitions" in self.config:
@@ -94,9 +98,16 @@ class Preprocessor:
          2. Repartition the data : shuffle the data to balance the partitions.
          3. Normalize the feature columns.
         """
-        df = self.handle_missing_values(df)        
-        df = self._repartition_data_Balanced(df, preserve_partition_id = self.config["reserve_partition_id"]) # data is  redistributed across partitions -> 2 shuffle
-        df = self.normalize(df, min_max, preserve_partition_id = self.config["reserve_partition_id"])   # data is normalised on partitions -> no shuffle
         
-        # You can add more feature engineering here if needed.
+        df = self.handle_missing_values(df)
+        
+        if self.config["model_type"] == "local":
+            df = self._repartition_data_Balanced(df, preserve_partition_id = self.config["reserve_partition_id"])
+        elif self.config["model_type"] == "global":
+            df = self._repartition_data_NotBalanced(df, preserve_partition_id = self.config["reserve_partition_id"])
+        else:
+            raise ValueError("Invalid model type. Choose 'local' or 'global'.")
+        
+        df = self.normalize(df, min_max, preserve_partition_id = self.config["reserve_partition_id"])
+        
         return df
