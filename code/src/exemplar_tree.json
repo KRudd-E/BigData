@@ -1,0 +1,81 @@
+{
+  "node_id": 1,
+  "split_exemplar_id": "dtw_distance_exemplar_3",
+  "split_exemplar_data": [
+    0.9,
+    1.7,
+    1.2,
+    2.4,
+    2.8
+  ],
+  "split_exemplar_label": 4,
+  "gini_reduction": 0.2533333333333333,
+  "is_leaf": false,
+  "predicted_label": null,
+  "yes_child": {
+    "node_id": 2,
+    "split_exemplar_id": null,
+    "split_exemplar_data": null,
+    "split_exemplar_label": null,
+    "gini_reduction": null,
+    "is_leaf": true,
+    "predicted_label": 1
+  },
+  "no_child": {
+    "node_id": 3,
+    "split_exemplar_id": "dtw_distance_exemplar_4",
+    "split_exemplar_data": [
+      1.9,
+      2.8,
+      3.7,
+      4.6,
+      5.5
+    ],
+    "split_exemplar_label": 2,
+    "gini_reduction": 0.3753086419753086,
+    "is_leaf": false,
+    "predicted_label": null,
+    "yes_child": {
+      "node_id": 6,
+      "split_exemplar_id": null,
+      "split_exemplar_data": null,
+      "split_exemplar_label": null,
+      "gini_reduction": null,
+      "is_leaf": true,
+      "predicted_label": 2
+    },
+    "no_child": {
+      "node_id": 7,
+      "split_exemplar_id": "dtw_distance_exemplar_1",
+      "split_exemplar_data": [
+        1.2,
+        2.4,
+        3.6,
+        4.8,
+        6.0
+      ],
+      "split_exemplar_label": 1,
+      "gini_reduction": 0.2916666666666667,
+      "is_leaf": false,
+      "predicted_label": null,
+      "yes_child": {
+        "node_id": 14,
+        "split_exemplar_id": null,
+        "split_exemplar_data": null,
+        "split_exemplar_label": null,
+        "gini_reduction": null,
+        "is_leaf": true,
+        "predicted_label": 1
+      },
+      "no_child": {
+        "node_id": 15,
+        "split_exemplar_id": null,
+        "split_exemplar_data": null,
+        "split_exemplar_label": null,
+        "gini_reduction": null,
+        "is_leaf": true,
+        "predicted_label": 4
+      }
+    }
+  }
+}
