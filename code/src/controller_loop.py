@@ -16,11 +16,12 @@ from data_ingestion import DataIngestion
 from preprocessing import Preprocessor
 from local_model_manager import LocalModelManager
 from global_model_manager import GlobalModelManager
-from prediction_manager import PredictionManager
+from prediction_manager import PredictionManager, predict_with_global_prox_tree
 from evaluation import Evaluator
 from utilities import show_compact, randomSplit_dist, randomSplit_stratified_via_sampleBy, compute_min_max
 from visualization import plot_confusion_matrix, plot_class_metrics
 import logging
+import time
 
 class PipelineController_Loop:
     def __init__(self, config):
@@ -32,7 +33,8 @@ class PipelineController_Loop:
         self.ingestion_config = {}
         self.ingestion = None
         self.preprocessor = None
-        self.model_manager = None
+        self.local_model_manager = None
+        self.global_model_manager = None
         self.predictor = None
         self.evaluator = None
         
@@ -96,19 +98,22 @@ class PipelineController_Loop:
                 self.logger.info(f"\n\nRunning global model with {i} partitions")
             
             self._setup_spark()
-            
+            current_datetime = time.strftime("%Y-%m-%d %H:%M")
+        
+            try:
+                module_path = os.path.join(os.getcwd(), 'code', 'src', 'global_model_manager.py')
+                self.spark.sparkContext.addPyFile(module_path)
+                self.logger.info(f"Added {module_path} to SparkContext pyFiles.")
+            except Exception as e:
+                self.logger.error(f"Failed to add global_model_manager.py to SparkContext: {e}")    
+            # Handle error appropriately, maybe raise it
             
             # Initialize modules
             self.evaluator = Evaluator()
             self.ingestion = DataIngestion(spark=self.spark, config=self.ingestion_config)
             self.preprocessor = Preprocessor(config=self.config)
             
-            # Model Manager
-            if self.config["model_type"] == "local":
-                self.model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
-            elif self.config["model_type"] == "global":
-                self.model_manager = GlobalModelManager(config=self.config.get("global_model_config", None))
-
+  
             # Data Ingestion
             self.evaluator.start_timer("Ingestion")
             df = self.ingestion.load_data()
@@ -124,69 +129,94 @@ class PipelineController_Loop:
             preprocessed_train_df = self.preprocessor.run_preprocessing(train_df, min_max) # does two shuffles of the 80% of data 
             self.evaluator.record_time("Preprocessing train data")
 
-            # print("\nSample of preprocessed data:")
-            # show_compact(preprocessed_train_df, num_rows=5, num_cols=3)                   
-            
-            # Training local models
-            self.evaluator.start_timer("Training")
-            local_ensemble = self.model_manager.train_ensemble(preprocessed_train_df)
-            self.evaluator.record_time("Training")
-            
-            
             # Preprocessing test data
             self.evaluator.start_timer("Preprocessing test data")
             preprocessed_test_df = self.preprocessor.run_preprocessing(test_df, min_max) # does two shuffles of the rest of 20% of data 
             self.evaluator.record_time("Preprocessing test data")
-
-            # Prediction
-            self.evaluator.start_timer("Prediction")
-            self.predictor = PredictionManager(self.spark, local_ensemble)
-            predictions_df = self.predictor.generate_predictions(preprocessed_test_df)  
-            self.evaluator.record_time("Prediction")
             
-            print("\nPredictions:")
-            predictions_df.groupBy("prediction").count().show() #! returns to driver
-
-            # Evaluation
-            report, class_names   = self.evaluator.log_metrics(predictions_df, ensemble=local_ensemble)
+            # print("\nSample of preprocessed data:")
+            # show_compact(preprocessed_train_df, num_rows=5, num_cols=3)                   
             
-            # # Plot confusion matrix with proper labels
-            # if "confusion_matrix" in report:
-            #     plot_confusion_matrix(
-            #         np.array(report["confusion_matrix"]),
-            #         class_names,  
-            #         save_path="pdf_results/confusion_matrix.pdf",
-            #         show=False
-            #     )
+            # Training global models
+            if self.config["global_model_config"]["test_global_model"] is True:
+                self.global_model_manager = GlobalModelManager(spark=self.spark, config=self.config.get("global_model_config", None))
+                self.evaluator.start_timer("Training Global Models")
+                model_ensamble = self.global_model_manager.fit(preprocessed_train_df)
+                self.evaluator.record_time("Training Global Models")
+                
+                # Prediction
+                self.evaluator.start_timer("Prediction global models")
+                
+                predictions_df = predict_with_global_prox_tree(model_ensamble, preprocessed_test_df)
+
+                self.evaluator.record_time("Prediction global models")
+                
+                print("\nLocal model Predictions:")
+                predictions_df.groupBy("prediction").count().show() #! returns to driver
+
+                # Evaluation
+                report, class_names   = self.evaluator.log_metrics(predictions_df, model=model_ensamble)
+                
+                  # Load existing data if file exists, else create empty dict
+                if os.path.exists(f"code/src/logs/report_global_model_{current_datetime}.json"):
+                    with open(f"code/src/logs/report_global_model_{current_datetime}.json", "r") as f:
+                        all_reports = json.load(f)
+                else:
+                    all_reports = {}
+
+                # Add new report under key i (cast to str for JSON compatibility)
+                all_reports[str(i)] = report
+
+                # Write full dictionary back to file
+                with open(f"code/src/logs/report_global_model_{current_datetime}.json", "w") as f:
+                    json.dump(all_reports, f, indent=2)
+                
+                print("\nFinal Report global model:")
+                print(json.dumps(report, indent=2))
+
+                delay_seconds = 10 
+                print(f"\n\nWaiting for {delay_seconds} seconds before next iteration...\n")
+                time.sleep(delay_seconds)
             
-            # # Plot class metrics with proper labels
-            # if "class_wise" in report:
-            #     plot_class_metrics(
-            #         report["class_wise"],
-            #         class_names,  
-            #         save_path="pdf_results/class_performance.pdf",
-            #         show=False,
-            #         class_names=class_names  # Pass to plotting function
-            #     )
-
-
-
-            # Load existing data if file exists, else create empty dict
-            if os.path.exists("code/src/logs/report.json"):
-                with open("code/src/logs/report.json", "r") as f:
-                    all_reports = json.load(f)
-            else:
-                all_reports = {}
-
-            # Add new report under key i (cast to str for JSON compatibility)
-            all_reports[str(i)] = report
-
-            # Write full dictionary back to file
-            with open("code/src/logs/report.json", "w") as f:
-                json.dump(all_reports, f, indent=2)
+            # Training local models
+            if self.config["local_model_config"]["test_local_model"] is True:
+                self.local_model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
+                self.evaluator.start_timer("Training Local Models")
+                model_ensamble = self.local_model_manager.train_ensemble(preprocessed_train_df)
+                self.evaluator.record_time("Training Local Models")
+                
+                # Prediction
+                self.evaluator.start_timer("Prediction local models")
+                self.predictor = PredictionManager(self.spark, model_ensamble)
+                predictions_df = self.predictor._generate_predictions_local(preprocessed_test_df)  
+                self.evaluator.record_time("Prediction local models")
             
-            print("\nFinal Report:")
-            print(json.dumps(report, indent=2))
+                print("\nLocal model Predictions:")
+                predictions_df.groupBy("prediction").count().show() #! returns to driver
+
+                # Evaluation
+                report, class_names   = self.evaluator.log_metrics(predictions_df, model=model_ensamble)
+
+                
+                # Load existing data if file exists, else create empty dict
+                if os.path.exists(f"code/src/logs/report_local_model_{current_datetime}.json":
+                    with open(f"code/src/logs/report_local_model_{current_datetime}.json", "r") as f:
+                        all_reports = json.load(f)
+                else:
+                    all_reports = {}
+
+                # Add new report under key i (cast to str for JSON compatibility)
+                all_reports[str(i)] = report
+
+                # Write full dictionary back to file
+                with open(f"code/src/logs/report_local_model_{current_datetime}.json", "w") as f:
+                    json.dump(all_reports, f, indent=2)
+                
+                print("\nFinal Report Local model:")
+                print(json.dumps(report, indent=2))
+
+
+
 
             # Clean up spark session if running locally
             if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
