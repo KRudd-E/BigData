@@ -1,5 +1,6 @@
+from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
-from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType, ArrayType, MapType
+from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType, ArrayType
 import random
 import collections
 import math # For Euclidean distance
@@ -144,7 +145,8 @@ def predict_udf_func(plain_tree_structure_broadcast):
 
 
 class GlobalModelManager:
-    def __init__(self, spark, max_depth=5, min_samples=5, num_candidate_splits=5):
+    def __init__(self, spark: SparkSession, config: dict):
+        # def __init__(self, spark, max_depth=5, min_samples=5, num_candidate_splits=5):
         """
         Initialize the Global Proximity Tree
 
@@ -163,14 +165,14 @@ class GlobalModelManager:
             (Used for sampling pool on driver, not per candidate split as in paper)
         """
         self.spark = spark
-        self.max_depth = max_depth
-        self.min_samples = min_samples
-        self.num_candidate_splits = num_candidate_splits
+        self.max_depth = config["tree_params"]["max_depth"]
+        self.min_samples = config["tree_params"]["min_samples_split"]
+        self.num_candidate_splits = config["tree_params"]["n_splitters"]
         # Note: num_exemplars_per_class here is used to sample a pool of exemplars
         # to the driver per node/label, not per candidate split.
         # With num_exemplars_per_class > 1 (e.g., 5), the sampled pool per class has multiple options.
         # Candidate splits randomly pick 1 from this pool, increasing exemplar diversity across splits.
-        self.num_exemplars_per_class = num_candidate_splits
+        self.num_exemplars_per_class = config["tree_params"]["n_splitters"]
 
 
         # Define the schema for data assigned to nodes
@@ -519,7 +521,7 @@ class GlobalModelManager:
                     # Collect the counts per branch to the driver for Gini calculation
                     # This is a potential bottleneck but necessary for weighted sum
                     branch_counts_collected = branch_label_counts_rdd.collect()
-                    print(f"DEBUG: Branch label counts collected for candidate split {i+1}: {branch_counts_collected}")
+                    # print(f"DEBUG: Branch label counts collected for candidate split {i+1}: {branch_counts_collected}")
 
 
                     # Calculate weighted Gini impurity on the driver
