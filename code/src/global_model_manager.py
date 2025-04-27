@@ -143,7 +143,7 @@ def predict_udf_func(plain_tree_structure_broadcast):
     return traverse_tree
 
 
-class GlobalProxTree:
+class GlobalModelManager:
     def __init__(self, spark, max_depth=5, min_samples=5, num_candidate_splits=5):
         """
         Initialize the Global Proximity Tree
