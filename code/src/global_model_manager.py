@@ -144,7 +144,7 @@ def predict_udf_func(plain_tree_structure_broadcast):
 
 
 class GlobalProxTree:
-    def __init__(self, spark, max_depth=5, min_samples=5, num_candidate_splits=5, num_exemplars_per_class=1):
+    def __init__(self, spark, max_depth=5, min_samples=5, num_candidate_splits=5):
         """
         Initialize the Global Proximity Tree
 
@@ -168,8 +168,9 @@ class GlobalProxTree:
         self.num_candidate_splits = num_candidate_splits
         # Note: num_exemplars_per_class here is used to sample a pool of exemplars
         # to the driver per node/label, not per candidate split.
-        # The paper samples 1 exemplar per class *per candidate split*.
-        self.num_exemplars_per_class = num_exemplars_per_class
+        # With num_exemplars_per_class > 1 (e.g., 5), the sampled pool per class has multiple options.
+        # Candidate splits randomly pick 1 from this pool, increasing exemplar diversity across splits.
+        self.num_exemplars_per_class = num_candidate_splits
 
 
         # Define the schema for data assigned to nodes
