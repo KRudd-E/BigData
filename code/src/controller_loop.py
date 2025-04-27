@@ -98,7 +98,7 @@ class PipelineController_Loop:
                 self.logger.info(f"\n\nRunning global model with {i} partitions")
             
             self._setup_spark()
-            current_datetime = time.strftime("%Y-%m-%d %H:%M")
+            current_datetime = time.strftime("%Y-%m-%d-%H-%M")
         
             try:
                 module_path = os.path.join(os.getcwd(), 'code', 'src', 'global_model_manager.py')
