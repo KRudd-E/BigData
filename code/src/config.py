@@ -18,11 +18,11 @@ config = {
     "model_type" : "local", #!
 
     "local_model_config": {
-        "test_local_model" : True,
+        "test_local_model" : False,
         "num_partitions": 10,  #loop to this number of partitions
         "tree_params": {
             "n_splitters": 5,  # Matches ProximityTree default
-            "max_depth": None,  
+            "max_depth": 3,  #TODO: NONE
             "min_samples_split": 5,  # From ProximityTree default
             "random_state": 123
             },
@@ -32,8 +32,14 @@ config = {
             }
     },
     "global_model_config": {
-        "test_global_model" : False,
-        "num_partitions": 10
+        "test_global_model" : True,
+        "num_partitions": 10,  #loop to this number of partitions
+        "tree_params": {
+            "n_splitters": 5,  # Matches ProximityTree default
+            "max_depth": 3,  
+            "min_samples_split": 5,  # From ProximityTree default
+            "random_state": 123
+            },
     },
     "reserve_partition_id": False
 }
