@@ -188,7 +188,7 @@ class PipelineController_Loop:
                 # Prediction
                 self.evaluator.start_timer("Prediction local models")
                 self.predictor = PredictionManager(self.spark, model_ensamble)
-                predictions_df = self.predictor._generate_predictions_local(preprocessed_test_df)  
+                predictions_df = self.predictor.generate_predictions_local(preprocessed_test_df)  
                 self.evaluator.record_time("Prediction local models")
             
                 print("\nLocal model Predictions:")
