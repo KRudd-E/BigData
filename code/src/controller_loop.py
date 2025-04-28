@@ -199,7 +199,7 @@ class PipelineController_Loop:
 
                 
                 # Load existing data if file exists, else create empty dict
-                if os.path.exists(f"code/src/logs/report_local_model_{current_datetime}.json":
+                if os.path.exists(f"code/src/logs/report_local_model_{current_datetime}.json"):
                     with open(f"code/src/logs/report_local_model_{current_datetime}.json", "r") as f:
                         all_reports = json.load(f)
                 else:
