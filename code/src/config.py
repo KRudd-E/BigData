@@ -14,9 +14,8 @@ config = {
     "label_col" : "label",
     "data_percentage" : 1.0,
     "min_number_iterarations" : 2,
+    "delay_time" : 3,
     
-    "model_type" : "local", #!
-
     "local_model_config": {
         "test_local_model" : False,
         "num_partitions": 10,  #loop to this number of partitions

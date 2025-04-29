@@ -47,7 +47,7 @@ class Preprocessor:
 
         return df.select(*normalized_cols, *cols_to_select)
 
-    def _repartition_data_NotBalanced(self, df: DataFrame) -> DataFrame:
+    def _repartition_data_NotBalanced(self, df: DataFrame, preserve_partition_id: bool = False) -> DataFrame:
         if "num_partitions" in self.config:
             new_parts = self.config["num_partitions"]  # 
             #self.logger.info(f"Repartitioning data to {new_parts} parts")
@@ -101,12 +101,12 @@ class Preprocessor:
         
         df = self.handle_missing_values(df)
         
-        if self.config["model_type"] == "local":
+        if self.config["local_model_config"]["test_local_model"] is True:
             df = self._repartition_data_Balanced(df, preserve_partition_id = self.config["reserve_partition_id"])
-        elif self.config["model_type"] == "global":
+        elif self.config["global_model_config"]["test_global_model"] is True:
             df = self._repartition_data_NotBalanced(df, preserve_partition_id = self.config["reserve_partition_id"])
         else:
-            raise ValueError("Invalid model type. Choose 'local' or 'global'.")
+            raise ValueError("Preprocessing error.")
         
         df = self.normalize(df, min_max, preserve_partition_id = self.config["reserve_partition_id"])
         

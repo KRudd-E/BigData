@@ -93,25 +93,22 @@ class Evaluator:
 
 
     def calculate_classification_metrics(self, predictions_df: DataFrame) -> Dict:
-        """Calculate multiple classification metrics"""
+        """Calculate multiple classification metrics, including balanced accuracy."""
         metrics = {}
         # Ensure 'label' and 'prediction' columns exist before evaluating
         if "label" not in predictions_df.columns or "prediction" not in predictions_df.columns:
             self.logger.warning("Cannot calculate classification metrics: 'label' or 'prediction' column missing.")
-            return metrics # Return empty metrics
+            return metrics
 
-        # Ensure label and prediction columns are numeric for the evaluator
-        # Cast to DoubleType as MulticlassClassificationEvaluator expects numeric types
+        # Ensure label and prediction columns are numeric
         predictions_df = predictions_df.withColumn("label", F.col("label").cast(DoubleType()))
         predictions_df = predictions_df.withColumn("prediction", F.col("prediction").cast(DoubleType()))
-
 
         evaluator = MulticlassClassificationEvaluator(
             labelCol="label",
             predictionCol="prediction"
         )
 
-        # List of metrics to calculate
         metrics_to_calculate = ["accuracy", "weightedPrecision", "weightedRecall", "f1"]
 
         for metric in metrics_to_calculate:
@@ -122,7 +119,25 @@ class Evaluator:
                 )
             except Exception as e:
                 self.logger.warning(f"Failed to calculate metric '{metric}': {e}")
-                metrics[metric] = None # Indicate failure
+                metrics[metric] = None  # Indicate failure
+
+        #Balanced Accuracy
+        try:
+            prediction_and_labels = predictions_df.select("prediction", "label").rdd.map(lambda row: (row.prediction, row.label))
+            metrics_obj = MulticlassMetrics(prediction_and_labels)
+
+            labels = prediction_and_labels.map(lambda x: x[1]).distinct().collect()
+
+            recalls = []
+            for label in labels:
+                recalls.append(metrics_obj.recall(label))
+
+            balanced_accuracy = np.mean(recalls)
+            metrics["balancedAccuracy"] = balanced_accuracy
+
+        except Exception as e:
+            self.logger.warning(f"Failed to calculate balanced accuracy: {e}")
+            metrics["balancedAccuracy"] = None
 
         # Store calculated metrics, rounding to specified precision
         self.metrics.update({k: round(v, self.precision) if v is not None else None for k, v in metrics.items()})
@@ -283,6 +298,7 @@ class Evaluator:
         report = {
             "performance": {
                 "accuracy": format_value(self.metrics.get("accuracy", None), decimal_precision),
+                "balanced_accuracy": format_value(self.metrics.get("balancedAccuracy", None), decimal_precision),
                 "error_rate": format_value(1 - self.metrics.get("accuracy", 0), decimal_precision),
                 "precision": format_value(self.metrics.get("weightedPrecision", None), decimal_precision),
                 "recall": format_value(self.metrics.get("weightedRecall", None), decimal_precision),
