@@ -6,3 +6,4 @@ code/data/
 # Python bytecode files
 __pycache__/
 *.py[cod]
+code/src/logs/archive/

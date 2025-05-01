@@ -51,7 +51,6 @@ class PipelineController_Loop:
         if "DATABRICKS_RUNTIME_VERSION" in os.environ:
             self.spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
             print("\nUsing Databricks Spark session.")
-            # Use the Databricks file path from config.
             self.ingestion_config = {
                 "data_path": self.config.get("databricks_data_path", "/mnt/2025-team6/fulldataset_ECG5000.csv"),
                 "data_percentage": self.config.get("data_percentage", 0.05)
@@ -60,9 +59,12 @@ class PipelineController_Loop:
             self.spark = SparkSession.getActiveSession() or SparkSession.builder \
                 .appName("LocalPipeline") \
                 .master("local[*]") \
+                .config("spark.driver.memory", "4g") \
+                .config("spark.executor.memory", "4g") \
+                .config("spark.driver.maxResultSize", "4g") \
                 .getOrCreate()
             print("\nUsing local Spark session.")
-            # Set up a local file path, using the project root folder.
+
             current_dir = os.path.dirname(__file__)
             project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
             self.ingestion_config = {
@@ -112,28 +114,29 @@ class PipelineController_Loop:
                 self.logger.error(f"Failed to add global_model_manager.py to SparkContext: {e}")    
 
             # Initialize modules
-            self.evaluator = Evaluator()
+            self.evaluator = Evaluator(track_memory=True)
             self.preprocessor = Preprocessor(config=self.config)
             self.ingestion = DataIngestion(spark=self.spark, config=self.ingestion_config)
             
             # Data Ingestion
             self.evaluator.start_timer("Ingestion")
             df = self.ingestion.load_data()
-            self.evaluator.record_time("Ingestion")
+            self.evaluator.record_time("Ingestion", spark_context=self.spark, dataframe=df)
+            #self.evaluator.record_memory_usage("end_Ingestion", spark_context=self.spark.sparkContext, dataframe=df)
 
             #  Split data first - does one shuffle of the data
             min_max = compute_min_max(df) # we should save this as artefact for later use.
             train_df, test_df = randomSplit_stratified_via_sampleBy(df, label_col = "label", weights=[0.8, 0.2], seed=123)       
             
             # Preprocessing train data
-            self.evaluator.start_timer("Preprocessing train data")
+            self.evaluator.start_timer("Preprocessing_train_data")
             preprocessed_train_df = self.preprocessor.run_preprocessing(train_df, min_max) # does two shuffles of the 80% of data 
-            self.evaluator.record_time("Preprocessing train data")
+            self.evaluator.record_time("Preprocessing_train_data")
 
             # Preprocessing test data
-            self.evaluator.start_timer("Preprocessing test data")
+            self.evaluator.start_timer("Preprocessing_test_data")
             preprocessed_test_df = self.preprocessor.run_preprocessing(test_df, min_max) # does two shuffles of the rest of 20% of data 
-            self.evaluator.record_time("Preprocessing test data")
+            self.evaluator.record_time("Preprocessing_test_data")
             
             # print("\nSample of preprocessed data:")
             # show_compact(preprocessed_train_df, num_rows=5, num_cols=3)                   
@@ -142,14 +145,14 @@ class PipelineController_Loop:
             if self.config["global_model_config"]["test_global_model"] is True:
                 self.global_model_manager = GlobalModelManager(spark=self.spark, config=self.config.get("global_model_config", None))
                 
-                self.evaluator.start_timer("Training Global Models")
+                self.evaluator.start_timer("Training")
                 model_ensamble = self.global_model_manager.fit(preprocessed_train_df)
-                self.evaluator.record_time("Training Global Models")
+                self.evaluator.record_time("Training")
                 
                 # Prediction
-                self.evaluator.start_timer("Prediction global models")
+                self.evaluator.start_timer("Prediction")
                 predictions_df = predict_with_global_prox_tree(model_ensamble, preprocessed_test_df)
-                self.evaluator.record_time("Prediction global models")
+                self.evaluator.record_time("Prediction")
                 
                 print("\Global Model Predictions:")
                 predictions_df.groupBy("prediction").count().show() #! returns to driver
@@ -179,15 +182,15 @@ class PipelineController_Loop:
             if self.config["local_model_config"]["test_local_model"] is True:
                 self.local_model_manager = LocalModelManager(config=self.config.get("local_model_config", None))
                 
-                self.evaluator.start_timer("Training Local Models")
+                self.evaluator.start_timer("Training")
                 model_ensamble = self.local_model_manager.train_ensemble(preprocessed_train_df)
-                self.evaluator.record_time("Training Local Models")
+                self.evaluator.record_time("Training")
                 
                 # Prediction
-                self.evaluator.start_timer("Prediction local models")
+                self.evaluator.start_timer("Prediction")
                 self.predictor = PredictionManager(self.spark, model_ensamble)
                 predictions_df = self.predictor.generate_predictions_local(preprocessed_test_df)  
-                self.evaluator.record_time("Prediction local models")
+                self.evaluator.record_time("Prediction")
             
                 print("\nLocal model Predictions:")
                 predictions_df.groupBy("prediction").count().show() #! returns to driver

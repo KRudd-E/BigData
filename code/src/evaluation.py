@@ -14,6 +14,8 @@ from pyspark.sql.types import  DoubleType
 from pyspark.mllib.evaluation import MulticlassMetrics
 import time
 import logging
+import os
+import psutil
 import numpy as np
 from typing import Dict, Any
 import collections
@@ -49,13 +51,13 @@ class Evaluator:
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
 
-    def start_timer(self, stage_name: str):
+    def start_timer(self, stage_name: str, spark_context=None, dataframe=None):
         """Start timing for a pipeline stage"""
         self.start_times[stage_name] = time.time()
         if self.track_memory:
             self.record_memory_usage(f"start_{stage_name}")
 
-    def record_time(self, stage_name: str, units: str = "seconds"):
+    def record_time(self, stage_name: str, units: str = "seconds", spark_context=None, dataframe=None):
         """Record duration with configurable units"""
         if stage_name not in self.start_times:
             raise ValueError(f"No timer started for: {stage_name}")
@@ -74,24 +76,17 @@ class Evaluator:
             self.record_memory_usage(f"end_{stage_name}")
         return duration
 
-    def record_memory_usage(self, stage: str = None):
-        """Record memory usage if running on Spark"""
+    def record_memory_usage(self, stage_name: str):
+        """Log memory usage of the current Python process"""
         try:
-            from pyspark import SparkContext
-            # Attempt to get executor memory status if SparkContext is available
-            sc = SparkContext.getOrCreate()
-            if sc:
-                 memory_usage = sc.getExecutorMemoryStatus()
-                 key = "memory_usage" if not stage else f"memory_usage_{stage}"
-                 self.metrics[key] = memory_usage
-            else:
-                 self.logger.warning("SparkContext not available to measure memory usage.")
-
+            process = psutil.Process(os.getpid())
+            mem_bytes = process.memory_info().rss
+            mem_mb = round(mem_bytes / (1024 ** 2), 2)
+            self.metrics[f"{stage_name}_memory"] = mem_mb
+            self.logger.info(f"{stage_name} - Python process memory usage: {mem_mb} MB")
         except Exception as e:
-            # Catch any exception during memory measurement
-            self.logger.warning(f"Could not measure memory usage: {e}")
-
-
+            self.logger.warning(f"Failed to record memory at stage {stage_name}: {e}")
+    
     def calculate_classification_metrics(self, predictions_df: DataFrame) -> Dict:
         """Calculate multiple classification metrics, including balanced accuracy."""
         metrics = {}
@@ -309,6 +304,11 @@ class Evaluator:
                 for k, v in self.metrics.items()
                 if "_time" in k and not k.endswith("_units")
             },
+            "memory": {
+                k: format_value(v, decimal_precision)
+                for k, v in self.metrics.items()
+                if "_memory" in k
+            },
             "complexity": {}, # Initialize as empty dict
 
             "confusion_matrix": self.metrics.get("confusion_matrix", []),
@@ -447,6 +447,7 @@ class Evaluator:
         else:
             self.logger.info("No timing metrics recorded.")
 
+        #! Log memory usage metrics
 
         # Log complexity metrics
         complexity_metrics = report.get("complexity", {})
