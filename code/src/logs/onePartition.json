@@ -1,0 +1,86 @@
+{
+    "local": {
+      "performance": {
+        "accuracy": 0.923762,
+        "balanced_accuracy": 0.498812,
+        "error_rate": 0.076238,
+        "precision": 0.910398,
+        "recall": 0.923762,
+        "f1_score": 0.912715
+      },
+      "timing": {
+        "Ingestion_time": 2.2774,
+        "Preprocessing_train_data_time": 0.3009,
+        "Preprocessing_test_data_time": 0.2679,
+        "Training_time": 14.2058,
+        "Prediction_time": 0.2072
+      },
+      "memory": {
+        "start_Ingestion_memory": 157.78,
+        "end_Ingestion_memory": 106.19,
+        "start_Preprocessing_train_data_memory": 95.34,
+        "end_Preprocessing_train_data_memory": 96.09,
+        "start_Preprocessing_test_data_memory": 96.09,
+        "end_Preprocessing_test_data_memory": 89.61,
+        "start_Training_memory": 91.14,
+        "end_Training_memory": 76.22,
+        "start_Prediction_memory": 76.33,
+        "end_Prediction_memory": 91.69
+      },
+      "complexity": {
+        "model_type": "local_ensemble",
+        "num_trees": 1,
+        "avg_depth": 7.0,
+        "avg_leaves": 207.0,
+        "avg_splits": 126.0
+      },
+      "confusion_matrix": [],
+      "class_wise": {},
+      "_meta": {
+        "decimal_precision": 8,
+        "timestamp": "2025-05-01 15:19:38"
+      }
+    },
+    "global": {
+      "performance": {
+        "accuracy": 0.919802,
+        "balanced_accuracy": 0.564262,
+        "error_rate": 0.080198,
+        "precision": 0.910274,
+        "recall": 0.919802,
+        "f1_score": 0.911926
+      },
+      "timing": {
+        "Ingestion_time": 2.9304,
+        "Preprocessing_train_data_time": 0.3504,
+        "Preprocessing_test_data_time": 0.3392,
+        "Training_time": 1619.3627,
+        "Prediction_time": 1.085
+      },
+      "memory": {
+        "start_Ingestion_memory": 144.78,
+        "end_Ingestion_memory": 26.86,
+        "start_Preprocessing_train_data_memory": 14.36,
+        "end_Preprocessing_train_data_memory": 19.97,
+        "start_Preprocessing_test_data_memory": 20.05,
+        "end_Preprocessing_test_data_memory": 20.41,
+        "start_Training_memory": 20.89,
+        "end_Training_memory": 32.02,
+        "start_Prediction_memory": 32.08,
+        "end_Prediction_memory": 43.78
+      },
+      "complexity": {
+        "model_type": "global_tree",
+        "num_trees": 1,
+        "depth": 7,
+        "leaves": 191,
+        "splits": 118
+      },
+      "confusion_matrix": [],
+      "class_wise": {},
+      "_meta": {
+        "decimal_precision": 8,
+        "timestamp": "2025-05-01 15:54:18"
+      }
+    }
+  }
