@@ -45,6 +45,7 @@ class LocalModelManager:
         
         # Final ensemble model
         self.ensemble = None
+        self.use_weighting = self.config.get("use_weighting", False)
         
         # Set up a logger so we can see whats going on
         self.logger = logging.getLogger(__name__)
@@ -128,7 +129,20 @@ class LocalModelManager:
                     print(f"{indent}    Branch on exemplar of class '{label}':")
                     self._print_tree_node_info(child_node, depth + 1)
 
-   
+    def _create_weighted_predict_proba(self):
+        original_predict_proba = self.ensemble.predict_proba
+        
+        def weighted_predict_proba(X):
+            if not self.use_weighting:
+                return original_predict_proba(X)  # Default unweighted behavior
+                
+            probas = [
+                tree.predict_proba(X) * weight 
+                for tree, weight in zip(self.ensemble.trees_, self.ensemble.tree_weights_)
+            ]
+            return np.mean(probas, axis=0)
+            
+        self.ensemble.predict_proba = weighted_predict_proba
    
     def train_ensemble(self, df: DataFrame) -> ProximityForest:
         
@@ -141,6 +155,7 @@ class LocalModelManager:
         """
         
         tree_params = self.config["tree_params"]      
+        use_weighting = self.use_weighting
         
          # Define how to process each partition - inline function
         def process_partition(partition_data):
@@ -158,10 +173,17 @@ class LocalModelManager:
                 
                 # Train one tree
                 tree = ProximityTree(**tree_params)
-                tree.fit(X_3d, y)
                 
+                if use_weighting:
+                    # Split into train/validation    
+                    tree.fit(X_3d, y)
+                    oob_score = tree.score(X_3d, y)
+                else:
+                    # Train on the entire partition
+                    tree.fit(X_3d, y)
+                    oob_score = 1.0  # All trees have same weight
                 # Return serialized tree
-                return [pickle.dumps(tree)]
+                return [pickle.dumps((tree, oob_score))]
             
             except Exception as e:
                 print(f"Failed to train tree on partition: {str(e)}")
@@ -169,9 +191,15 @@ class LocalModelManager:
             
         # Run training on all partitions
         trees_rdd = df.rdd.mapPartitions(process_partition)
-        serialized_trees = trees_rdd.collect()
-        self.trees = [pickle.loads(b) for b in serialized_trees if b is not None]
+        tree_data = [pickle.loads(b) for b in trees_rdd.collect() if b is not None] 
 
+        # Split into trees and weights
+        if tree_data:
+            self.trees, self.tree_weights = zip(*tree_data) 
+            print(f"self.tree_weights: {self.tree_weights}")
+        else:
+            return None
+        
         # Build the forest
         if self.trees:
             self.ensemble = ProximityForest(

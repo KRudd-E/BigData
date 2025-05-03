@@ -338,11 +338,12 @@ class PipelineController_Loop:
                         print(f"Iteration {i}: Finish Local Evaluation.")
                         
                         depth = local_config.get("tree_params", {}).get("max_depth", "NA") 
+                        use_weighting = local_config.get("use_weighting", "NA") 
                         
                         # --- Save Model --- 
                         model_folder = "models_local" 
                         os.makedirs(model_folder, exist_ok=True) 
-                        model_filename = f"local_model_parti_{i}_{current_datetime}_depth_{depth}.pkl" 
+                        model_filename = f"local_model_parti_{i}_{current_datetime}_depth_{depth}_weighting_{use_weighting}.pkl" 
                         model_save_path = os.path.join(model_folder, model_filename)
                         try:
                             with open(model_save_path, 'wb') as f: pickle.dump(model_ensamble, f) 
@@ -392,7 +393,7 @@ class PipelineController_Loop:
         if all_reports_local:
              report_folder = "logs"
              os.makedirs(report_folder, exist_ok=True) 
-             report_filename_local = f"report_local_model_ALL_{final_datetime}.json" 
+             report_filename_local = f"report_local_model_ALL_weighting_{use_weighting}_{final_datetime}.json" 
              report_save_path_local = os.path.join(report_folder, report_filename_local)
              try:
                  with open(report_save_path_local, "w") as f: json.dump(all_reports_local, f, indent=2)
