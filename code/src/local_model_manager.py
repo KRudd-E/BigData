@@ -15,6 +15,7 @@ from pyspark.sql import DataFrame, Window
 from aeon.classification.distance_based import ProximityTree, ProximityForest
 from pyspark.sql import functions as F
 import logging
+from sklearn.model_selection import train_test_split
 
 class LocalModelManager:
     """
@@ -175,9 +176,10 @@ class LocalModelManager:
                 tree = ProximityTree(**tree_params)
                 
                 if use_weighting:
-                    # Split into train/validation    
-                    tree.fit(X_3d, y)
-                    oob_score = tree.score(X_3d, y)
+                    # Split into train/validation   
+                    X_train, X_val, y_train, y_val = train_test_split(X_3d, y, test_size=0.2,stratify=y, random_state=123)  
+                    tree.fit(X_train, y_train)
+                    oob_score = tree.score(X_val, y_val) 
                 else:
                     # Train on the entire partition
                     tree.fit(X_3d, y)
