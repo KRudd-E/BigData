@@ -111,7 +111,7 @@ class GlobalModelManager:
         self.k: int = p.get("n_splitters", 5) 
         # P3: Add random_state for reproducibility
         self.random_state: int | None = p.get("random_state") 
-        self._rng = random.Random(self.random_state) # Initialize RNG instance with seed
+        #self._rng = random.Random(self.random_state) # Initialize RNG instance with seed
         
         self.tree: Dict[int, TreeNode] = {0: TreeNode(0, None, None, False, None, {})}
         self._next_id: int = 1
@@ -222,7 +222,8 @@ class GlobalModelManager:
             # --- P2: Distributed Exemplar Sampling ---
             self.logger.debug("Starting distributed exemplar sampling...")
             # P3: Seed rand with instance RNG state (requires converting int to seed)
-            window_spec = Window.partitionBy("node_id", "true_label").orderBy(F.rand(self._rng.randint(0, 1000000))) 
+            window_spec = Window.partitionBy("node_id", "true_label").orderBy(F.rand()) # REMOVED SEED 
+#            window_spec = Window.partitionBy("node_id", "true_label").orderBy(F.rand(self._rng.randint(0, 1000000))) 
             sampled_exemplars_df = cur.withColumn("rank", F.row_number().over(window_spec)) \
                                       .filter(F.col("rank") <= self.k) \
                                       .select("node_id", "true_label", "time_series") 
@@ -261,7 +262,9 @@ class GlobalModelManager:
                     candidate_ex = {}
                     possible = True
                     for lbl in available_labels:
-                        if node_pool[lbl]: candidate_ex[lbl] = self._rng.choice(node_pool[lbl]) # P3: Use seeded RNG
+                        if node_pool[lbl]: 
+                            #candidate_ex[lbl] = self._rng.choice(node_pool[lbl]) # P3: Use seeded RNG
+                            candidate_ex[lbl] = random.choice(node_pool[lbl]) 
                         else: possible = False; break 
                     if not possible or len(candidate_ex) < 2: continue 
 
