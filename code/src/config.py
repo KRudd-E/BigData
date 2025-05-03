@@ -13,15 +13,15 @@ config = {
     "local_data_path" : "/fulldataset_ECG5000.csv",
     "label_col" : "label",
     "data_percentage" : 1.0,
-    "min_number_iterarations" : 2,
+    "min_number_iterarations" : 2, # Minimum number of iterations for the loop
     "delay_time" : 3,
     
     "local_model_config": {
         "test_local_model" : True,
-        "num_partitions": 10,  #loop to this number of partitions
+        "num_partitions": 3,  # loop to this number of partitions - This is the number of partitions for the local model
         "tree_params": {
             "n_splitters": 5,  # Matches ProximityTree default
-            "max_depth": 6,  #TODO: NONE
+            "max_depth": 2,  #TODO: NONE
             "min_samples_split": 5,  # From ProximityTree default
             "random_state": 123
             },
@@ -32,11 +32,11 @@ config = {
     },
     "global_model_config": {
         "test_global_model" : False,
-        "num_partitions": 10,  #loop to this number of partitions
+        "num_partitions": 2,  # loop to this number of partitions - This is the number of partitions for the global model
         "tree_params": {
             "n_splitters": 5,  # Matches ProximityTree default
-            "max_depth": 6,  
-            "min_samples_split": 5,  # From ProximityTree default
+            "max_depth": 1,  
+            "min_samples_split": 5,  # From ProximityTree defaults
             "random_state": 123
             },
     },
