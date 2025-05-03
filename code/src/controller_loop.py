@@ -145,7 +145,7 @@ class PipelineController_Loop:
         all_reports_local = {}  
 
         self._setup_spark() 
-        if not self._setup_spark():
+        if not self.spark:
              self.logger.error("Initial Spark setup failed. Aborting run.")
              return
         if self.ingestion_config.get("data_path") is None:
