@@ -49,7 +49,7 @@ class Evaluator:
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+            self.logger.setLevel(logging.ERROR)
 
     def start_timer(self, stage_name: str, spark_context=None, dataframe=None):
         """Start timing for a pipeline stage"""
@@ -77,7 +77,7 @@ class Evaluator:
         return duration
 
     def record_memory_usage(self, stage_name: str):
-        """Log memory usage of the current Python process"""
+        """Measures the memory usage of the Spark Driver's Python process - TODO: Add Spark executor memory usage"""
         try:
             process = psutil.Process(os.getpid())
             mem_bytes = process.memory_info().rss
@@ -116,23 +116,43 @@ class Evaluator:
                 self.logger.warning(f"Failed to calculate metric '{metric}': {e}")
                 metrics[metric] = None  # Indicate failure
 
-        #Balanced Accuracy
+        # --- Calculate Balanced Accuracy using DataFrame API ---
         try:
-            prediction_and_labels = predictions_df.select("prediction", "label").rdd.map(lambda row: (row.prediction, row.label))
-            metrics_obj = MulticlassMetrics(prediction_and_labels)
+            # Calculate True Positives (TP), False Positives (FP), False Negatives (FN) per class
+            # Correct counts approach: Group by label first to get total actuals per class
+            actual_counts = predictions_df.groupBy("label").count().withColumnRenamed("count", "actual_total")
 
-            labels = prediction_and_labels.map(lambda x: x[1]).distinct().collect()
+            # Calculate TP per class (where label == prediction)
+            tp_counts = predictions_df.where(F.col("label") == F.col("prediction")) \
+                                    .groupBy("label").count().withColumnRenamed("count", "tp")
 
-            recalls = []
-            for label in labels:
-                recalls.append(metrics_obj.recall(label))
+            # Join TP counts with actual counts
+            class_metrics_df = actual_counts.join(tp_counts, "label", "left_outer").fillna(0, subset=["tp"])
 
-            balanced_accuracy = np.mean(recalls)
+            # Calculate Recall per class (Recall = TP / (TP + FN) = TP / Actual Total)
+            # Avoid division by zero if a class has no instances (actual_total=0)
+            class_metrics_df = class_metrics_df.withColumn(
+                "recall",
+                F.when(F.col("actual_total") > 0, F.col("tp") / F.col("actual_total")).otherwise(0.0)
+            )
+
+            # Calculate Balanced Accuracy (average of per-class recalls)
+            # Handle case where class_metrics_df might be empty
+            recall_list = [row["recall"] for row in class_metrics_df.select("recall").collect()]
+
+            if recall_list:
+                balanced_accuracy = sum(recall_list) / len(recall_list)
+            else:
+                balanced_accuracy = 0.0 # Or None, depending on desired behavior for no classes
+                self.logger.warning("No classes found to calculate balanced accuracy.")
+
+
             metrics["balancedAccuracy"] = balanced_accuracy
+            self.logger.debug(f"DataFrame API Balanced Accuracy calculated: {balanced_accuracy}")
 
         except Exception as e:
-            self.logger.warning(f"Failed to calculate balanced accuracy: {e}")
-            metrics["balancedAccuracy"] = None
+            self.logger.error(f"Failed to calculate balanced accuracy using DataFrame API: {e}")
+            metrics["balancedAccuracy"] = None # Indicate failure
 
         # Store calculated metrics, rounding to specified precision
         self.metrics.update({k: round(v, self.precision) if v is not None else None for k, v in metrics.items()})
@@ -167,11 +187,11 @@ class Evaluator:
 
             # Store ensemble metrics (averages)
             self.metrics.update({
-                "model_type": "local_ensemble", # Indicate model type
+                "model_type": "local_proximity_forest", # Indicate model type
                 "num_trees": len(model.trees_),
-                "avg_depth": float(np.mean(depths)) if depths else 0.0,
-                "avg_leaves": float(np.mean(leaf_counts)) if leaf_counts else 0.0,
-                "avg_splits": float(np.mean(split_counts)) if split_counts else 0.0
+                "depth": int(np.mean(depths)) if depths else 0.0,
+                "leaves": int(np.mean(leaf_counts)) if leaf_counts else 0.0,
+                "splits": int(np.mean(split_counts)) if split_counts else 0.0
             })
 
         # Check if it's a GlobalProxTree 
@@ -190,11 +210,11 @@ class Evaluator:
 
                  # Store single tree metrics directly
                  self.metrics.update({
-                     "model_type": "global_tree", # Indicate model type
+                     "model_type": "global_proximity_tree", # Indicate model type
                      "depth": depth,
                      "leaves": leaves,
                      "splits": splits,
-                     "num_trees": 1 # It's a single tree
+                     "num_trees": 1 # It's a single proximity tree
                  })
                  self.logger.debug(f"Global Tree - Depth: {depth}, Leaves: {leaves}, Splits: {splits}")
 
@@ -330,12 +350,12 @@ class Evaluator:
         model_type = self.metrics.get("model_type", "unknown")
         report["complexity"]["model_type"] = model_type
 
-        if model_type == "local_ensemble":
+        if model_type == "local_proximity_forest":
             report["complexity"]["num_trees"] = int(self.metrics.get("num_trees", 0))
-            report["complexity"]["avg_depth"] = format_value(self.metrics.get("avg_depth", 0), decimal_precision)
-            report["complexity"]["avg_leaves"] = format_value(self.metrics.get("avg_leaves", 0), decimal_precision)
-            report["complexity"]["avg_splits"] = format_value(self.metrics.get("avg_splits", 0), decimal_precision)
-        elif model_type == "global_tree":
+            report["complexity"]["depth"] = format_value(self.metrics.get("depth", 0), decimal_precision)
+            report["complexity"]["leaves"] = format_value(self.metrics.get("leaves", 0), decimal_precision)
+            report["complexity"]["splits"] = format_value(self.metrics.get("splits", 0), decimal_precision)
+        elif model_type == "global_proximity_tree":
             report["complexity"]["num_trees"] = int(self.metrics.get("num_trees", 1)) # Should be 1
             report["complexity"]["depth"] = self.metrics.get("depth", "N/A") # Single depth
             report["complexity"]["leaves"] = self.metrics.get("leaves", "N/A") # Single leaves count
@@ -458,9 +478,9 @@ class Evaluator:
 
              if model_type == "local_ensemble":
                  self.logger.info(f"Number of Trees: {complexity_metrics.get('num_trees', 'N/A')}")
-                 self.logger.info(f"Average Depth: {complexity_metrics.get('avg_depth', 'N/A')}")
-                 self.logger.info(f"Average Leaves: {complexity_metrics.get('avg_leaves', 'N/A')}")
-                 self.logger.info(f"Average Splits: {complexity_metrics.get('avg_splits', 'N/A')}")
+                 self.logger.info(f"Average Depth: {complexity_metrics.get('depth', 'N/A')}")
+                 self.logger.info(f"Average Leaves: {complexity_metrics.get('leaves', 'N/A')}")
+                 self.logger.info(f"Average Splits: {complexity_metrics.get('splits', 'N/A')}")
              elif model_type == "global_tree":
                   self.logger.info(f"Number of Trees: {complexity_metrics.get('num_trees', 'N/A')}")
                   self.logger.info(f"Depth: {complexity_metrics.get('depth', 'N/A')}")

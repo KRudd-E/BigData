@@ -1,4 +1,4 @@
-# Optimised GlobalModelManager – DF-only version (avoids large RDD shuffle)
+# GlobalModelManager – DF-only version (avoids large RDD shuffle)
 # Enhanced Prediction Traversal
 # --------------------------------------------------------------------------
 # • single-pass aggregations & fewer .count() actions (RETAINED)

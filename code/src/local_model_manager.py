@@ -49,7 +49,7 @@ class LocalModelManager:
         # Set up a logger so we can see whats going on
         self.logger = logging.getLogger(__name__)
         self.logger.addHandler(logging.StreamHandler())
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.ERROR)
         
 
     def _set_forest_classes(self):

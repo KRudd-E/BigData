@@ -71,7 +71,7 @@ class PredictionManager:
         self.ensemble = ensemble
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.addHandler(logging.StreamHandler())
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.ERROR)
         
         # Basic model validation
         if not ensemble or not hasattr(ensemble, 'is_fitted') or not ensemble.is_fitted_:
