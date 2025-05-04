@@ -13,7 +13,7 @@ config = {
     "local_data_path" : "/fulldataset_ECG5000.csv",
     "label_col" : "label",
     "data_percentage" : 1.0,
-    "min_number_iterarations" : 10, # Minimum number of iterations for the loop
+    "min_number_iterarations" : 2, # Minimum number of iterations for the loop
     "delay_time" : 3,
     
     "local_model_config": {
