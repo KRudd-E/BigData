@@ -308,8 +308,8 @@ class PipelineController_Loop:
 
                     # Pass the config containing the num_partitions for this iteration
                     self.local_model_manager = LocalModelManager(config=local_config) 
-                    model_ensamble = self.local_model_manager.train_ensemble(preprocessed_train_df) # This is the ProximityForest object
                     self.evaluator.start_timer("Local_Training")
+                    model_ensamble = self.local_model_manager.train_ensemble(preprocessed_train_df) # This is the ProximityForest object
                     print(f"\nIteration (Partitions:) {i}: Train local model with {i} partitions......")
                     # Train on the data preprocessed (and potentially repartitioned) for this iteration
                     
