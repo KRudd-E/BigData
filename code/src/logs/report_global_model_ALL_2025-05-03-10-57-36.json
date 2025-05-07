@@ -1,0 +1,66 @@
+{
+  "9": {
+    "performance": {
+      "accuracy": 0.939604,
+      "balanced_accuracy": 0.541927,
+      "error_rate": 0.060396,
+      "precision": 0.933993,
+      "recall": 0.939604,
+      "f1_score": 0.931892
+    },
+    "timing": {
+      "Ingestion_time": 2.0655,
+      "Split_MinMax_time": 8.3549,
+      "Preprocessing_Train_time": 2.5345,
+      "Preprocessing_Test_time": 6.0463,
+      "Global_Training_time": 4822.5722,
+      "Global_Prediction_time": 16.9363
+    },
+    "memory": {},
+    "complexity": {
+      "model_type": "global_proximity_tree",
+      "num_trees": 1,
+      "depth": 17,
+      "leaves": 314,
+      "splits": 241
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-05-03 09:52:50"
+    }
+  },
+  "10": {
+    "performance": {
+      "accuracy": 0.931683,
+      "balanced_accuracy": 0.530635,
+      "error_rate": 0.068317,
+      "precision": 0.917287,
+      "recall": 0.931683,
+      "f1_score": 0.92384
+    },
+    "timing": {
+      "Ingestion_time": 2.2781,
+      "Split_MinMax_time": 8.1574,
+      "Preprocessing_Train_time": 2.5544,
+      "Preprocessing_Test_time": 5.6042,
+      "Global_Training_time": 3828.3461,
+      "Global_Prediction_time": 7.0006
+    },
+    "memory": {},
+    "complexity": {
+      "model_type": "global_proximity_tree",
+      "num_trees": 1,
+      "depth": 18,
+      "leaves": 317,
+      "splits": 241
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-05-03 10:57:35"
+    }
+  }
+}

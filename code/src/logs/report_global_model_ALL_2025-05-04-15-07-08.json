@@ -1,0 +1,34 @@
+{
+  "17": {
+    "performance": {
+      "accuracy": 0.933663,
+      "balanced_accuracy": 0.516547,
+      "error_rate": 0.066337,
+      "precision": 0.917243,
+      "recall": 0.933663,
+      "f1_score": 0.924528
+    },
+    "timing": {
+      "Ingestion_time": 2.9643,
+      "Split_MinMax_time": 10.5301,
+      "Preprocessing_Train_time": 3.282,
+      "Preprocessing_Test_time": 8.3082,
+      "Global_Training_time": 4430.3878,
+      "Global_Prediction_time": 1.1153
+    },
+    "memory": {},
+    "complexity": {
+      "model_type": "global_proximity_tree",
+      "num_trees": 1,
+      "depth": 18,
+      "leaves": 319,
+      "splits": 238
+    },
+    "confusion_matrix": [],
+    "class_wise": {},
+    "_meta": {
+      "decimal_precision": 8,
+      "timestamp": "2025-05-04 13:22:23"
+    }
+  }
+}
