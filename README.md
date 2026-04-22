@@ -67,48 +67,48 @@ Run the pipeline:
 ```bash
 python code/src/main.py
 
----
-### Steps
-
-1. **Data Ingestion**
-   - Loads CSV into Spark DataFrame  
-   - Applies schema and optional sampling  
-
-2. **Preprocessing**
-   - Removes fully null rows  
-   - Min-max normalisation of features  
-
-3. **Train/Test Split**
-   - Random or stratified  
-
-4. **Model Training**
-   - **Global:** trained on full dataset  
-   - **Local:** trained per partition  
-
-5. **Distance Computation**
-   - DTW (exact / approximate)  
-   - Euclidean / Manhattan / Cosine  
-
-6. **Prediction & Evaluation**
-   - Accuracy, precision, recall, F1  
-   - Balanced accuracy  
-
-7. **Logging**
-   - JSON experiment reports  
-   - Runtime and scaling metrics  
-
----
-
-## Models
-
-### Global Model
-- Single model across all data  
-- Higher computational cost  
-- More stable performance  
-
-### Local Models
-- One model per partition  
-- Faster and parallelisable  
-- Sensitive to partition quality  
-
----
+        
+        ### Steps
+        
+        1. **Data Ingestion**
+           - Loads CSV into Spark DataFrame  
+           - Applies schema and optional sampling  
+        
+        2. **Preprocessing**
+           - Removes fully null rows  
+           - Min-max normalisation of features  
+        
+        3. **Train/Test Split**
+           - Random or stratified  
+        
+        4. **Model Training**
+           - **Global:** trained on full dataset  
+           - **Local:** trained per partition  
+        
+        5. **Distance Computation**
+           - DTW (exact / approximate)  
+           - Euclidean / Manhattan / Cosine  
+        
+        6. **Prediction & Evaluation**
+           - Accuracy, precision, recall, F1  
+           - Balanced accuracy  
+        
+        7. **Logging**
+           - JSON experiment reports  
+           - Runtime and scaling metrics  
+        
+        ---
+        
+        ## Models
+        
+        ### Global Model
+        - Single model across all data  
+        - Higher computational cost  
+        - More stable performance  
+        
+        ### Local Models
+        - One model per partition  
+        - Faster and parallelisable  
+        - Sensitive to partition quality  
+        
+        ---
