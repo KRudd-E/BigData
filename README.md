@@ -35,27 +35,27 @@ Experiments are conducted on the ECG5000 dataset.
 ---
 
 ## Project Structure
-code/
-├── src/
-│   ├── main.py
-│   ├── config.py
-│   ├── data_ingestion.py
-│   ├── preprocessing.py
-│   ├── distance_measures.py
-│   ├── local_model_manager.py
-│   ├── prediction_manager.py
-│   ├── utilities.py
-│   ├── visualization.py
-│   └── models_global/
-│
-├── tests/
-│
-logs/
-├── img/
-├── archive/
-│
-models_local/
-models_global/
+        code/
+        ├── src/
+        │   ├── main.py
+        │   ├── config.py
+        │   ├── data_ingestion.py
+        │   ├── preprocessing.py
+        │   ├── distance_measures.py
+        │   ├── local_model_manager.py
+        │   ├── prediction_manager.py
+        │   ├── utilities.py
+        │   ├── visualization.py
+        │   └── models_global/
+        │
+        ├── tests/
+        │
+        logs/
+        ├── img/
+        ├── archive/
+        │
+        models_local/
+        models_global/
 
 
 ---
@@ -66,6 +66,8 @@ Run the pipeline:
 
 ```bash
 python code/src/main.py
+
+---
 ### Steps
 
 1. **Data Ingestion**
