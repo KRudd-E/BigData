@@ -1,63 +1,112 @@
-# BigData
-Time-Series Classification
+# Distributed Time Series Classification with Spark
 
-# Milestones
-* Interim milestone - poster & discussion - 24 Mar - 3 credits
-* Final submission of Report, Code, and contribution statements - 6 May - 9 credits
-* Final presentation - 12 May - 3 credits
+## Overview
 
-# Crucially
-* A project that designs and implements a well-thought-out distributed solution for a relatively straightforward method/technique will receive a higher mark
+This project implements a distributed pipeline for time series classification using PySpark, focusing on scalability, partition-aware learning, and distance-based models.
 
-## Environment Setup
+The system supports:
+- **Global models** trained across the full dataset  
+- **Local models** trained independently per data partition  
 
-### 1. Clone the repository :
-git clone https://github.com/YourUser/BigData.git
-cd BigData
+The goal is to analyse trade-offs between predictive performance, runtime, and scalability.
 
-###  2. Create the environment using environment.yml:
-conda env create -f environment.yml
+Experiments are conducted on the ECG5000 dataset.
 
-###  3. Activate the environment:
-conda activate bigdata_env
+---
 
-###  4. Install packages from requirements.txt - if needed:
-conda install --file requirements.txt
+## Key Features
 
-### 5. Configure Spark to Use the Conda Environment (Windows)
+- End-to-end Spark pipeline (ingestion → preprocessing → training → evaluation)
+- Partition-aware training (local vs global models)
+- Distance-based classification:
+  - Dynamic Time Warping (DTW)
+  - Euclidean
+  - Manhattan
+  - Cosine
+- Integration with `aeon` (Proximity Tree / Forest)
+- Configurable sampling and partitioning
+- Detailed logging:
+  - performance metrics
+  - runtime
+  - memory usage
+  - model complexity
+- Unit tests for core components
+
+---
+
+## Project Structure
+code/
+├── src/
+│   ├── main.py
+│   ├── config.py
+│   ├── data_ingestion.py
+│   ├── preprocessing.py
+│   ├── distance_measures.py
+│   ├── local_model_manager.py
+│   ├── prediction_manager.py
+│   ├── utilities.py
+│   ├── visualization.py
+│   └── models_global/
+│
+├── tests/
+│
+logs/
+├── img/
+├── archive/
+│
+models_local/
+models_global/
 
 
-* To ensure Spark uses your custom Python interpreter from your 'conda environment':
+---
 
-* Set System Environment Variables:
+## Pipeline
 
-Open System Properties → Advanced system settings → Environment Variables.
-Under User variables or System variables, add or update:
+Run the pipeline:
 
 ```bash
-- SPARK_HOME = [Your path]
-- PYSPARK_PYTHON = [Your path]
-- PYSPARK_DRIVER_PYTHON = [Your path]
-```
-
-* Restart Your Terminal/IDE:
-Close and reopen your terminal or VS Code so the new settings take effect.
-
-#####Verify the Configuration:
-
-- Run a simple Spark script (e.g., create a file test_spark.py with the following content):
-```bash
-from pyspark.sql import SparkSession
-spark = SparkSession.builder.master("local[*]").appName("EnvTest").getOrCreate()
-print("Spark is using:", spark.sparkContext.pythonExec)
-spark.stop()
-```
-
-- Execute the script and verify that the output points to:
-
-```bash
-[Yourpath]
-```
-
-####  5. Run main.py scripts:
 python code/src/main.py
+### Steps
+
+1. **Data Ingestion**
+   - Loads CSV into Spark DataFrame  
+   - Applies schema and optional sampling  
+
+2. **Preprocessing**
+   - Removes fully null rows  
+   - Min-max normalisation of features  
+
+3. **Train/Test Split**
+   - Random or stratified  
+
+4. **Model Training**
+   - **Global:** trained on full dataset  
+   - **Local:** trained per partition  
+
+5. **Distance Computation**
+   - DTW (exact / approximate)  
+   - Euclidean / Manhattan / Cosine  
+
+6. **Prediction & Evaluation**
+   - Accuracy, precision, recall, F1  
+   - Balanced accuracy  
+
+7. **Logging**
+   - JSON experiment reports  
+   - Runtime and scaling metrics  
+
+---
+
+## Models
+
+### Global Model
+- Single model across all data  
+- Higher computational cost  
+- More stable performance  
+
+### Local Models
+- One model per partition  
+- Faster and parallelisable  
+- Sensitive to partition quality  
+
+---
